@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 var configFile = "config.json"
@@ -24,7 +26,7 @@ type FileConfig struct {
 	LogType        string   `json:"logType"`
 	FilterMode     string   `json:"filterMode"`
 	HostnameFilter []string `json:"hostnameFilter,omitempty"`
-	TagFilter      []string `json:"tagFilner,omitempty"`
+	TagFilter      []string `json:"tagFilter,omitempty"`
 	LogLevelFilter []int    `json:"logLevelFilter,omitempty"`
 	MessageFilter  []string `json:"MessageFilter,omitempty"`
 }
@@ -84,10 +86,35 @@ func checkConfig() (configa *Config, err error) {
 	return configa, nil
 }
 
-func (config *Config) save() error {
+//Save saves config
+func (config *Config) Save() error {
 	b, err := json.Marshal(config)
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(configFile, b, 0600)
+}
+
+//Validate removes empty fields
+func (config *Config) Validate() {
+	for h := 0; h < len(config.Files); h++ {
+		var fields = []*[]string{
+			&config.Files[h].HostnameFilter,
+			&config.Files[h].TagFilter,
+			&config.Files[h].MessageFilter,
+		}
+		for i := 0; i < len(fields); i++ {
+			var cl []string
+			for j := 0; j < len(*fields[i]); j++ {
+				cf := strings.Trim((*fields[i])[j], " ")
+
+				if len(cf) > 0 {
+					cl = append(cl, cf)
+				}
+			}
+			fmt.Println(cl)
+			*fields[i] = cl
+		}
+	}
+	fmt.Println(config.Files)
 }

@@ -8,6 +8,7 @@ import (
 
 var f *os.File
 var files = make(map[string]*os.File)
+var fileSize = make(map[string]int64)
 
 //ParseSysLogFile parses a syslogFile
 func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*SyslogEntry {
@@ -21,6 +22,22 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 			return nil
 		}
 		files[file] = f
+		dat, _ := os.Stat(file)
+		fileSize[file] = dat.Size()
+	}
+	if !wasNil {
+		dat, _ := os.Stat(file)
+		if dat.Size() < fileSize[file] {
+			LogInfo("file truncated!")
+			fileSize[file] = dat.Size()
+			var err error
+			f, err = os.Open(file)
+			if err != nil {
+				LogCritical("Couldn't open " + file)
+				return nil
+			}
+			files[file] = f
+		}
 	}
 
 	syslogEntries := []*SyslogEntry{}

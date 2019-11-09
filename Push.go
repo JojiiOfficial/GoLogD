@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	_ "github.com/fsnotify/fsnotify"
 	"github.com/mkideal/cli"
 )
 
@@ -38,7 +37,7 @@ var pushCMD = &cli.Command{
 			return nil
 		}
 
-		if len(config.Token) != 64 {
+		if len(config.Token) != 24 {
 			LogInfo("You need to enter a valid token")
 			os.Exit(1)
 			return nil
@@ -50,6 +49,7 @@ var pushCMD = &cli.Command{
 			return nil
 		}
 
+		config.Validate()
 		data.Validate()
 
 		filesToWatch := data.MergeWithConfig(*config)
@@ -91,10 +91,12 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 	}
 
 	sFilterMode := strings.Trim(confD.FilterMode, " ")
-	if len(sFilterMode) > 0 {
-		LogInfo("Wrong filtermode for \"" + fd.FileName + "\"! Using \"and\"")
-	} else {
-		LogInfo("No filtermode set for \"" + fd.FileName + "\"! Using \"and\"")
+	if sFilterMode != "and" && sFilterMode != "or" {
+		if len(sFilterMode) > 0 {
+			LogInfo("Wrong filtermode for \"" + fd.FileName + "\"! Using \"and\"")
+		} else {
+			LogInfo("No filtermode set for \"" + fd.FileName + "\"! Using \"and\"")
+		}
 	}
 	fireSyslogChanges(file, fd, data, confD, config)
 
@@ -108,11 +110,11 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
-				_ = event
 				if !ok {
+					fmt.Println("not ok")
 					return
 				}
-				if fsnotify.Write == fsnotify.Write {
+				if event.Op&fsnotify.Write == fsnotify.Write {
 					fireSyslogChanges(file, fd, data, confD, config)
 				}
 			case err, ok := <-watcher.Errors:
@@ -148,6 +150,9 @@ func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *F
 }
 
 func pushSyslogs(config *Config, startTime int64, logs []*SyslogEntry) error {
+	if len(logs) == 0 {
+		return nil
+	}
 	psr := PushSyslogRequest{
 		Token:     config.Token,
 		StartTime: startTime,

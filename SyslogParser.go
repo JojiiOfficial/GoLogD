@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -48,7 +47,6 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 
 	logentry.Hostname = splitted[3]
 	if len(fileconfig.HostnameFilter) > 0 {
-		fmt.Println(fileconfig.HostnameFilter)
 		if mr := logRegexMatch(logentry.Hostname, fileconfig.HostnameFilter); !mr && filterMode == 1 {
 			return &SyslogEntry{}
 		} else if mr && filterMode == 0 {
