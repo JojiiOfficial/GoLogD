@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"os"
 )
@@ -11,7 +10,7 @@ var f *os.File
 var files = make(map[string]*os.File)
 
 //ParseSysLogFile parses a syslogFile
-func ParseSysLogFile(file string, since int64) {
+func ParseSysLogFile(file string, since int64) []*SyslogEntry {
 	wasNil := false
 	if _, ok := files[file]; !ok {
 		wasNil = true
@@ -19,11 +18,12 @@ func ParseSysLogFile(file string, since int64) {
 		f, err = os.Open(file)
 		if err != nil {
 			LogCritical("Couldn't open " + file)
-			return
+			return nil
 		}
 		files[file] = f
 	}
 
+	syslogEntries := []*SyslogEntry{}
 	scanner := bufio.NewScanner(files[file])
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -35,11 +35,11 @@ func ParseSysLogFile(file string, since int64) {
 		if b {
 			continue
 		}
-		logE := ParseSyslogMessage(prepared, tima, line, since)
-		fmt.Println(*logE)
+		syslogEntries = append(syslogEntries, ParseSyslogMessage(prepared, tima, line, since))
 	}
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+	return syslogEntries
 }

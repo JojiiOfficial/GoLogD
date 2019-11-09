@@ -54,6 +54,11 @@ var pushCMD = &cli.Command{
 
 		data.Save()
 
+		if len(filesToWatch) == 0 {
+			LogError("No valid logfile configuration found. Exiting...")
+			os.Exit(1)
+			return nil
+		}
 		runFileWatcher(config, data, filesToWatch)
 
 		return nil
@@ -76,7 +81,8 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 			fd = &data.Files[i]
 		}
 	}
-	fireChanges(file, fd, data)
+	fmt.Println(fd.FileName)
+	fireSyslogChanges(file, fd, data)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -93,7 +99,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 					return
 				}
 				if fsnotify.Write == fsnotify.Write {
-					fireChanges(file, fd, data)
+					fireSyslogChanges(file, fd, data)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -111,10 +117,11 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 	<-done
 }
 
-func fireChanges(file WatchedFile, fd *FileData, data *Data) {
-	start := time.Now()
-	ParseSysLogFile(file.File, fd.LastLogTime)
+func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data) {
+	logs := ParseSysLogFile(file.File, fd.LastLogTime)
+	for _, i := range logs {
+		fmt.Println(i)
+	}
 	fd.LastLogTime = time.Now().Unix()
 	data.Save()
-	fmt.Println("Duration:", time.Now().Sub(start))
 }

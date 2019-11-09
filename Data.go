@@ -19,6 +19,7 @@ type Data struct {
 type FileData struct {
 	FileName    string `json:"file"`
 	LastLogTime int64  `json:"lastLogTime"`
+	LogType     string `json:"logtype"`
 }
 
 func checkData() (data *Data, err error) {
@@ -78,6 +79,16 @@ func (data *Data) MergeWithConfig(config Config) (watchedFiles []WatchedFile) {
 	var dataFiles []FileData
 	for _, configFile := range config.Files {
 		if fileData := data.hasFile(configFile.File); fileData != (FileData{}) {
+			if watchedFilesHasLog(watchedFiles, configFile.File) {
+				LogCritical("Logfile \"" + configFile.File + "\" is configured twice!")
+				os.Exit(1)
+				return
+			}
+			if !validateLogType(configFile.LogType) {
+				LogError("Logtype \"" + configFile.LogType + "\" is not supported! Ignoring logfile \"" + fileData.FileName + "\"")
+				continue
+			}
+			fileData.LogType = configFile.LogType
 			watchedFiles = append(watchedFiles, WatchedFile{
 				File:           configFile.File,
 				HostnameFilter: configFile.HostnameFilter,
@@ -88,13 +99,23 @@ func (data *Data) MergeWithConfig(config Config) (watchedFiles []WatchedFile) {
 			})
 			dataFiles = append(dataFiles, fileData)
 		} else {
+			if watchedFilesHasLog(watchedFiles, configFile.File) {
+				LogCritical("Logfile \"" + configFile.File + "\" is configured twice!")
+				os.Exit(1)
+				return
+			}
 			if _, err := os.Stat(configFile.File); err != nil {
 				LogError("Logfile doesn't exist \"" + configFile.File + "\"")
+				continue
+			}
+			if !validateLogType(configFile.LogType) {
+				LogError("Logtype \"" + configFile.LogType + "\" is not supported! Ignoring logfile \"" + fileData.FileName + "\"")
 				continue
 			}
 			fileData := &FileData{
 				FileName:    configFile.File,
 				LastLogTime: time.Now().Unix(),
+				LogType:     configFile.LogType,
 			}
 			dataFiles = append(dataFiles, *fileData)
 
@@ -119,4 +140,22 @@ func (data *Data) hasFile(sFile string) (fileData FileData) {
 		}
 	}
 	return FileData{}
+}
+
+func validateLogType(logtype string) bool {
+	for _, logT := range LogTypes {
+		if logT == logtype {
+			return true
+		}
+	}
+	return false
+}
+
+func watchedFilesHasLog(watchedFiles []WatchedFile, logFile string) bool {
+	for _, wf := range watchedFiles {
+		if wf.File == logFile {
+			return true
+		}
+	}
+	return false
 }
