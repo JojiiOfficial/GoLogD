@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/mkideal/cli"
 )
 
@@ -29,7 +32,27 @@ var pushCMD = &cli.Command{
 			return nil
 		}
 
-		_, _ = data, config
+		if len(config.Token) != 64 {
+			LogInfo("You need to enter a valid token")
+			os.Exit(1)
+			return nil
+		}
+
+		if len(config.Files) == 0 {
+			LogInfo("No logfile configured. Nothing to do")
+			os.Exit(1)
+			return nil
+		}
+
+		data.Validate()
+
+		filesToWatch := data.MergeWithConfig(*config)
+		for _, file := range filesToWatch {
+			fmt.Println(file.File)
+		}
+
+		data.Save()
+
 		return nil
 	},
 }

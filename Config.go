@@ -27,7 +27,13 @@ func checkConfig() (config *Config, err error) {
 	config = &Config{
 		Token:              "",
 		GlobalKeyBlacklist: []string{},
-		Files:              []FileConfig{},
+		Files: []FileConfig{
+			FileConfig{
+				File:           "/var/log/syslog",
+				RegexWhitelist: []string{},
+				RegexBlacklist: []string{},
+			},
+		},
 	}
 	_, err = os.Stat(configFile)
 	if err != nil {

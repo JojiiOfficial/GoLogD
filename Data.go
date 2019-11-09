@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 var dataFile = "./data.json"
@@ -56,4 +57,60 @@ func (data *Data) Save() error {
 		return err
 	}
 	return ioutil.WriteFile(dataFile, b, 0600)
+}
+
+//Validate removes all not existing files from data
+func (data *Data) Validate() {
+	var files []FileData
+	for _, file := range data.Files {
+		logFile := file.FileName
+		if _, err := os.Stat(logFile); err != nil {
+			LogError("Logfile \"" + logFile + "\" Doesn't exists!")
+			continue
+		}
+		files = append(files, file)
+	}
+	data.Files = files
+}
+
+//MergeWithConfig adds files from config to data and removes FileData from Data if logfile is not in config anymore
+func (data *Data) MergeWithConfig(config Config) (watchedFiles []WatchedFile) {
+	var dataFiles []FileData
+	for _, configFile := range config.Files {
+		if fileData := data.hasFile(configFile.File); fileData != nil {
+			watchedFiles = append(watchedFiles, WatchedFile{
+				File:           configFile.File,
+				RegexWhitelist: configFile.RegexWhitelist,
+				RegexBlacklist: configFile.RegexBlacklist,
+				LastLogTime:    fileData.LastLogTime,
+			})
+			dataFiles = append(dataFiles, *fileData)
+		} else {
+			if _, err := os.Stat(configFile.File); err != nil {
+				LogError("Logfile doesn't exist \"" + configFile.File + "\"")
+				continue
+			}
+			watchedFiles = append(watchedFiles, WatchedFile{
+				File:           configFile.File,
+				RegexWhitelist: configFile.RegexWhitelist,
+				RegexBlacklist: configFile.RegexBlacklist,
+				LastLogTime:    time.Now().Unix(),
+			})
+			dataFiles = append(dataFiles, FileData{
+				FileName:    configFile.File,
+				LastLogTime: time.Now().Unix(),
+			})
+		}
+	}
+	data.Files = dataFiles
+	return watchedFiles
+}
+
+func (data *Data) hasFile(sFile string) (fileData *FileData) {
+	for _, file := range data.Files {
+		if file.FileName == sFile {
+			return &file
+		}
+	}
+	return nil
 }
