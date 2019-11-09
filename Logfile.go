@@ -10,7 +10,7 @@ var f *os.File
 var files = make(map[string]*os.File)
 
 //ParseSysLogFile parses a syslogFile
-func ParseSysLogFile(file string, since int64) []*SyslogEntry {
+func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*SyslogEntry {
 	wasNil := false
 	if _, ok := files[file]; !ok {
 		wasNil = true
@@ -35,7 +35,12 @@ func ParseSysLogFile(file string, since int64) []*SyslogEntry {
 		if b {
 			continue
 		}
-		syslogEntries = append(syslogEntries, ParseSyslogMessage(prepared, tima, line, since))
+		loge := ParseSyslogMessage(prepared, tima, line, fileConfig, since)
+		if loge != nil && *loge != (SyslogEntry{}) {
+			syslogEntries = append(syslogEntries, loge)
+		} else if loge == nil {
+			LogInfo("Couldn't parse " + file)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
