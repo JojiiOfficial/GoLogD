@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/hex"
-	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -59,7 +58,6 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 		logentry.Tag = logentry.Tag[:len(logentry.Tag)-1]
 	}
 
-	fmt.Println(logentry.Tag)
 	if len(fileconfig.TagFilter) > 0 {
 		if !logRegexMatch(logentry.Tag, fileconfig.TagFilter) {
 			return &SyslogEntry{}
@@ -82,11 +80,32 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 		}
 	}
 
+	if len(fileconfig.LogLevelFilter) > 0 {
+		if !isInIntArray(logentry.LogLevel, fileconfig.LogLevelFilter) {
+			return &SyslogEntry{}
+		}
+	}
+
 	for i := start; i < len(splitted); i++ {
 		logentry.Message += splitted[i] + " "
 	}
 
+	if len(fileconfig.MessageFilter) > 0 {
+		if !logRegexMatch(logentry.Message, fileconfig.MessageFilter) {
+			return &SyslogEntry{}
+		}
+	}
+
 	return logentry
+}
+
+func isInIntArray(src int, arr []int) bool {
+	for _, i := range arr {
+		if i == src {
+			return true
+		}
+	}
+	return false
 }
 
 func logRegexMatch(src string, pattern []string) bool {
