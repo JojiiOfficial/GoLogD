@@ -20,6 +20,7 @@ type Config struct {
 type FileConfig struct {
 	File           string   `json:"logfile"`
 	LogType        string   `json:"logType"`
+	FilterMode     string   `json:"filterMode"`
 	HostnameFilter []string `json:"hostnameFilter,omitempty"`
 	TagFilter      []string `json:"tagFilner,omitempty"`
 	LogLevelFilter []int    `json:"logLevelFilter,omitempty"`
@@ -37,8 +38,9 @@ func checkConfig() (config *Config, err error) {
 		GlobalKeyBlacklist: []string{},
 		Files: []FileConfig{
 			FileConfig{
-				LogType: "syslog",
-				File:    "/var/log/syslog",
+				LogType:    "syslog",
+				File:       "/var/log/syslog",
+				FilterMode: "or",
 				HostnameFilter: []string{
 					"(?i)root",
 				},

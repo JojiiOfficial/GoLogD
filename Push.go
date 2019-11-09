@@ -87,6 +87,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 			fd = &data.Files[i]
 		}
 	}
+	fmt.Println(confD.FilterMode)
 	fireSyslogChanges(file, fd, data, confD)
 
 	watcher, err := fsnotify.NewWatcher()
