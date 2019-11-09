@@ -80,9 +80,11 @@ func (data *Data) MergeWithConfig(config Config) (watchedFiles []WatchedFile) {
 		if fileData := data.hasFile(configFile.File); fileData != nil {
 			watchedFiles = append(watchedFiles, WatchedFile{
 				File:           configFile.File,
-				RegexWhitelist: configFile.RegexWhitelist,
-				RegexBlacklist: configFile.RegexBlacklist,
-				LastLogTime:    fileData.LastLogTime,
+				HostnameFilter: configFile.HostnameFilter,
+				TagFilter:      configFile.TagFilter,
+				LogLevelFilter: configFile.LogLevelFilter,
+				MessageFilter:  configFile.MessageFilter,
+				FileData:       fileData,
 			})
 			dataFiles = append(dataFiles, *fileData)
 		} else {
@@ -90,15 +92,19 @@ func (data *Data) MergeWithConfig(config Config) (watchedFiles []WatchedFile) {
 				LogError("Logfile doesn't exist \"" + configFile.File + "\"")
 				continue
 			}
-			watchedFiles = append(watchedFiles, WatchedFile{
-				File:           configFile.File,
-				RegexWhitelist: configFile.RegexWhitelist,
-				RegexBlacklist: configFile.RegexBlacklist,
-				LastLogTime:    time.Now().Unix(),
-			})
-			dataFiles = append(dataFiles, FileData{
+			fileData := &FileData{
 				FileName:    configFile.File,
 				LastLogTime: time.Now().Unix(),
+			}
+			dataFiles = append(dataFiles, *fileData)
+
+			watchedFiles = append(watchedFiles, WatchedFile{
+				File:           configFile.File,
+				HostnameFilter: configFile.HostnameFilter,
+				TagFilter:      configFile.TagFilter,
+				LogLevelFilter: configFile.LogLevelFilter,
+				MessageFilter:  configFile.MessageFilter,
+				FileData:       fileData,
 			})
 		}
 	}

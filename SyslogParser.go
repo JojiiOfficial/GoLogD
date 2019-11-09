@@ -15,7 +15,7 @@ func PrepareLine(line string) []string {
 //ParseSyslogTime parses only the time value from message
 func ParseSyslogTime(line string) (prepared []string, tim time.Time, err error) {
 	prepared = PrepareLine(line)
-	tim, err = time.Parse(time.Stamp, prepared[0]+" "+prepared[1]+" "+prepared[2])
+	tim, err = time.ParseInLocation(time.Stamp, prepared[0]+" "+prepared[1]+" "+prepared[2], time.Now().Location())
 	if err != nil {
 		return
 	}
@@ -24,15 +24,10 @@ func ParseSyslogTime(line string) (prepared []string, tim time.Time, err error) 
 }
 
 //ParseSyslogMessage parses a message from syslog
-func ParseSyslogMessage(line string, startTime int64) *SyslogEntry {
+func ParseSyslogMessage(splitted []string, tim time.Time, line string, startTime int64) *SyslogEntry {
 	logentry := &SyslogEntry{}
 
-	splitted, tim, err := ParseSyslogTime(line)
-	if err != nil {
-		//TODO log
-		return logentry
-	}
-	logentry.Date = (int)(startTime - tim.Unix())
+	logentry.Date = tim.Unix() //(int)(tim.Unix() - startTime)
 	logentry.Hostname = splitted[3]
 	tag := strings.Split(splitted[4], "[")
 	if len(tag) == 2 {

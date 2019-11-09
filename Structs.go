@@ -4,7 +4,7 @@ package main
 
 //SyslogEntry a log entry in the syslog
 type SyslogEntry struct {
-	Date     int    `json:"d"`
+	Date     int64  `json:"d"`
 	Hostname string `json:"h"`
 	Tag      string `json:"t"`
 	PID      int    `json:"p"`
@@ -17,7 +17,9 @@ type SyslogEntry struct {
 //WatchedFile struct with obj from Config and Data
 type WatchedFile struct {
 	File           string
-	RegexWhitelist []string
-	RegexBlacklist []string
-	LastLogTime    int64
+	HostnameFilter []string
+	TagFilter      []string
+	LogLevelFilter []int
+	MessageFilter  []string
+	FileData       *FileData
 }

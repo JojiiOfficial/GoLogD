@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
+	_ "github.com/fsnotify/fsnotify"
 	"github.com/mkideal/cli"
 )
 
@@ -47,12 +51,64 @@ var pushCMD = &cli.Command{
 		data.Validate()
 
 		filesToWatch := data.MergeWithConfig(*config)
-		for _, file := range filesToWatch {
-			fmt.Println(file.File)
-		}
 
 		data.Save()
 
+		runFileWatcher(config, data, filesToWatch)
+
 		return nil
 	},
+}
+
+func runFileWatcher(config *Config, data *Data, filesToWatch []WatchedFile) {
+	for _, file := range filesToWatch {
+		go watchFile(config, data, file)
+	}
+	for {
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func watchFile(config *Config, data *Data, file WatchedFile) {
+	var fd *FileData
+	for i, filedata := range data.Files {
+		if filedata.FileName == file.FileData.FileName {
+			fd = &data.Files[i]
+		}
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				_ = event
+				if !ok {
+					return
+				}
+				if fsnotify.Write == fsnotify.Write {
+					ParseSysLogFile(file.File, fd.LastLogTime)
+					fd.LastLogTime = time.Now().Unix()
+					data.Save()
+					fmt.Println("unix is:", fd.LastLogTime, time.Unix(fd.LastLogTime, 0).String())
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("error:", err)
+			}
+		}
+	}()
+
+	err = watcher.Add(file.File)
+	if err != nil {
+		log.Fatal(err)
+	}
+	<-done
 }

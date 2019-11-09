@@ -1,27 +1,32 @@
 package main
 
+import (
+	"bufio"
+	"fmt"
+	"log"
+	"os"
+)
+
 //ParseSysLogFile parses a syslogFile
 func ParseSysLogFile(file string, since int64) {
-	/*f, err := os.Open(file)
+	f, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
-	start := time.Now()
-	lines := 0
 	for scanner.Scan() {
-		if lines >= 1000 {
-			break
+		line := scanner.Text()
+		prepared, tima, _ := ParseSyslogTime(line)
+		if tima.Unix() <= since {
+			continue
 		}
-		logE := ParseSyslogMessage(scanner.Text())
-		fmt.Println(logE)
-		lines++
+		logE := ParseSyslogMessage(prepared, tima, line, since)
+		fmt.Println(*logE)
 	}
-	fmt.Println("took ", time.Now().Sub(start), "for ", lines, "lines")
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
-	}*/
+	}
 }

@@ -19,8 +19,10 @@ type Config struct {
 //FileConfig config for each (log) file
 type FileConfig struct {
 	File           string   `json:"logfile"`
-	RegexWhitelist []string `json:"regexWhitelist"`
-	RegexBlacklist []string `json:"regexBlacklist"`
+	HostnameFilter []string `json:"hostnameFilter,omitempty"`
+	TagFilter      []string `json:"tagFilner,omitempty"`
+	LogLevelFilter []int    `json:"logLevelFilter,omitempty"`
+	MessageFilter  []string `json:"MessageFilter,omitempty"`
 }
 
 func checkConfig() (config *Config, err error) {
@@ -29,9 +31,17 @@ func checkConfig() (config *Config, err error) {
 		GlobalKeyBlacklist: []string{},
 		Files: []FileConfig{
 			FileConfig{
-				File:           "/var/log/syslog",
-				RegexWhitelist: []string{},
-				RegexBlacklist: []string{},
+				File: "/var/log/syslog",
+				HostnameFilter: []string{
+					"(?i)root",
+				},
+				TagFilter: []string{
+					"(?i)gologd",
+				},
+				LogLevelFilter: []int{},
+				MessageFilter: []string{
+					"",
+				},
 			},
 		},
 	}
