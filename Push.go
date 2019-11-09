@@ -23,7 +23,13 @@ var pushCMD = &cli.Command{
 			return nil
 		}
 
-		_ = data
+		config, err := checkConfig()
+		if err != nil {
+			LogCritical("Couldn't load config: " + err.Error())
+			return nil
+		}
+
+		_, _ = data, config
 		return nil
 	},
 }

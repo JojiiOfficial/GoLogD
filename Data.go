@@ -10,11 +10,21 @@ var dataFile = "./data.json"
 
 //Data deamon data
 type Data struct {
-	LastPush int64 `json:"lastPush"`
+	LastPush int64      `json:"lastPush"`
+	Files    []FileData `json:"files"`
+}
+
+//FileData data for each File
+type FileData struct {
+	FileName    string `json:"file"`
+	LastLogTime int64  `json:"lastLogTime"`
 }
 
 func checkData() (data *Data, err error) {
-	data = &Data{}
+	data = &Data{
+		LastPush: 0,
+		Files:    []FileData{},
+	}
 	_, err = os.Stat(dataFile)
 	if err != nil {
 		f, err := os.Create(dataFile)
@@ -45,6 +55,5 @@ func (data *Data) Save() error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(dataFile, b, 0600)
-	return err
+	return ioutil.WriteFile(dataFile, b, 0600)
 }
