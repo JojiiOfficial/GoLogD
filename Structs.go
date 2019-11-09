@@ -23,3 +23,10 @@ type WatchedFile struct {
 	MessageFilter  []string
 	FileData       *FileData
 }
+
+//PushSyslogRequest request to push
+type PushSyslogRequest struct {
+	Token     string         `json:"t"`
+	StartTime int64          `json:"st"`
+	Syslogs   []*SyslogEntry `json:"lgs"`
+}

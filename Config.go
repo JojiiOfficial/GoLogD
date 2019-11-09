@@ -12,6 +12,8 @@ var configFile = "config.json"
 //Config deamons config file
 type Config struct {
 	Token              string       `json:"token"`
+	Host               string       `json:"host"`
+	IgnoreCert         bool         `json:"ignoreCert"`
 	GlobalKeyBlacklist []string     `json:"termsToIgnore"`
 	Files              []FileConfig `json:"LogFiles"`
 }

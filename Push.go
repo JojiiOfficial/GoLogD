@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -87,8 +89,14 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 			fd = &data.Files[i]
 		}
 	}
-	fmt.Println(confD.FilterMode)
-	fireSyslogChanges(file, fd, data, confD)
+
+	sFilterMode := strings.Trim(confD.FilterMode, " ")
+	if len(sFilterMode) > 0 {
+		LogInfo("Wrong filtermode for \"" + fd.FileName + "\"! Using \"and\"")
+	} else {
+		LogInfo("No filtermode set for \"" + fd.FileName + "\"! Using \"and\"")
+	}
+	fireSyslogChanges(file, fd, data, confD, config)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -105,7 +113,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 					return
 				}
 				if fsnotify.Write == fsnotify.Write {
-					fireSyslogChanges(file, fd, data, confD)
+					fireSyslogChanges(file, fd, data, confD, config)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -123,13 +131,36 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 	<-done
 }
 
-func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *FileConfig) {
+func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *FileConfig, config *Config) {
 	start := time.Now()
 	logs := ParseSysLogFile(file.File, fileConfig, fd.LastLogTime)
 	for _, i := range logs {
 		fmt.Println(i)
 	}
-	fd.LastLogTime = time.Now().Unix()
-	data.Save()
 	fmt.Println("Duration:", time.Now().Sub(start).String())
+	err := pushSyslogs(config, fd.LastLogTime, logs)
+	if err != nil {
+		LogError("Error reporting: " + err.Error())
+	} else {
+		fd.LastLogTime = time.Now().Unix()
+		data.Save()
+	}
+}
+
+func pushSyslogs(config *Config, startTime int64, logs []*SyslogEntry) error {
+	psr := PushSyslogRequest{
+		Token:     config.Token,
+		StartTime: startTime,
+		Syslogs:   logs,
+	}
+	d, err := json.Marshal(psr)
+	if err != nil {
+		return err
+	}
+	resp, err := request(config.Host, "/push/syslog", d, config.IgnoreCert)
+	if err != nil {
+		return err
+	}
+	fmt.Println("resp", resp)
+	return nil
 }

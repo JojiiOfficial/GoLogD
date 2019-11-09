@@ -35,16 +35,10 @@ var regexBins = make(map[string]*regexp.Regexp)
 //ParseSyslogMessage parses a message from syslog
 func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfig *FileConfig, startTime int64) *SyslogEntry {
 	sFilterMode := strings.Trim(fileconfig.FilterMode, " ")
-	filterMode := 1
 	hitFilter := false
-	fmt.Print(sFilterMode)
-	if sFilterMode != "and" && sFilterMode != "or" {
-		if len(sFilterMode) > 0 {
-			LogInfo("Wrong filtermode for log \"" + fileconfig.File + "\"! Using \"and\"")
-		} else {
-			LogInfo("No filtermode set for log \"" + fileconfig.File + "\"! Using \"and\"")
-		}
-	} else if sFilterMode == "or" {
+
+	filterMode := 1
+	if sFilterMode == "or" {
 		filterMode = 0
 	}
 

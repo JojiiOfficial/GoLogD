@@ -15,8 +15,14 @@ func request(url, file string, data []byte, ignoreCert bool) (string, error) {
 	client := &http.Client{Transport: tr}
 	var addFile string
 	if strings.HasSuffix(url, "/") {
+		if strings.HasPrefix(file, "/") {
+			file = file[1:]
+		}
 		addFile = url + file
 	} else {
+		if strings.HasPrefix(file, "/") {
+			file = file[1:]
+		}
 		addFile = url + "/" + file
 	}
 	resp, err := client.Post(addFile, "application/json", bytes.NewBuffer(data))
