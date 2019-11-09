@@ -27,7 +27,7 @@ func ParseSyslogTime(line string) (prepared []string, tim time.Time, err error) 
 func ParseSyslogMessage(splitted []string, tim time.Time, line string, startTime int64) *SyslogEntry {
 	logentry := &SyslogEntry{}
 
-	logentry.Date = tim.Unix() //(int)(tim.Unix() - startTime)
+	logentry.Date = (int)(tim.Unix() - startTime)
 	logentry.Hostname = splitted[3]
 	tag := strings.Split(splitted[4], "[")
 	if len(tag) == 2 {

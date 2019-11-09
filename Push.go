@@ -76,10 +76,11 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 			fd = &data.Files[i]
 		}
 	}
+	fireChanges(file, fd, data)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	defer watcher.Close()
 	done := make(chan bool)
@@ -92,10 +93,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 					return
 				}
 				if fsnotify.Write == fsnotify.Write {
-					ParseSysLogFile(file.File, fd.LastLogTime)
-					fd.LastLogTime = time.Now().Unix()
-					data.Save()
-					fmt.Println("unix is:", fd.LastLogTime, time.Unix(fd.LastLogTime, 0).String())
+					fireChanges(file, fd, data)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -111,4 +109,12 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 		log.Fatal(err)
 	}
 	<-done
+}
+
+func fireChanges(file WatchedFile, fd *FileData, data *Data) {
+	start := time.Now()
+	ParseSysLogFile(file.File, fd.LastLogTime)
+	fd.LastLogTime = time.Now().Unix()
+	data.Save()
+	fmt.Println("Duration:", time.Now().Sub(start))
 }

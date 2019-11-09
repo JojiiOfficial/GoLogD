@@ -4,7 +4,7 @@ package main
 
 //SyslogEntry a log entry in the syslog
 type SyslogEntry struct {
-	Date     int64  `json:"d"`
+	Date     int    `json:"d"`
 	Hostname string `json:"h"`
 	Tag      string `json:"t"`
 	PID      int    `json:"p"`

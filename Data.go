@@ -77,16 +77,16 @@ func (data *Data) Validate() {
 func (data *Data) MergeWithConfig(config Config) (watchedFiles []WatchedFile) {
 	var dataFiles []FileData
 	for _, configFile := range config.Files {
-		if fileData := data.hasFile(configFile.File); fileData != nil {
+		if fileData := data.hasFile(configFile.File); fileData != (FileData{}) {
 			watchedFiles = append(watchedFiles, WatchedFile{
 				File:           configFile.File,
 				HostnameFilter: configFile.HostnameFilter,
 				TagFilter:      configFile.TagFilter,
 				LogLevelFilter: configFile.LogLevelFilter,
 				MessageFilter:  configFile.MessageFilter,
-				FileData:       fileData,
+				FileData:       &fileData,
 			})
-			dataFiles = append(dataFiles, *fileData)
+			dataFiles = append(dataFiles, fileData)
 		} else {
 			if _, err := os.Stat(configFile.File); err != nil {
 				LogError("Logfile doesn't exist \"" + configFile.File + "\"")
@@ -112,11 +112,11 @@ func (data *Data) MergeWithConfig(config Config) (watchedFiles []WatchedFile) {
 	return watchedFiles
 }
 
-func (data *Data) hasFile(sFile string) (fileData *FileData) {
+func (data *Data) hasFile(sFile string) (fileData FileData) {
 	for _, file := range data.Files {
 		if file.FileName == sFile {
-			return &file
+			return file
 		}
 	}
-	return nil
+	return FileData{}
 }
