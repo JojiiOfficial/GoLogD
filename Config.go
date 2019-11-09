@@ -32,8 +32,8 @@ var LogTypes = []string{
 	"syslog",
 }
 
-func checkConfig() (config *Config, err error) {
-	config = &Config{
+func checkConfig() (configa *Config, err error) {
+	defaultConfig := &Config{
 		Token:              "",
 		GlobalKeyBlacklist: []string{},
 		Files: []FileConfig{
@@ -60,7 +60,7 @@ func checkConfig() (config *Config, err error) {
 		if err != nil {
 			return nil, err
 		}
-		sdata, err := json.Marshal(config)
+		sdata, err := json.Marshal(defaultConfig)
 		var out bytes.Buffer
 		json.Indent(&out, sdata, "", "\t")
 
@@ -68,17 +68,18 @@ func checkConfig() (config *Config, err error) {
 		if err != nil {
 			return nil, err
 		}
-		return config, nil
+		return defaultConfig, nil
 	}
+	configa = &Config{}
 	dat, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(dat, &config)
+	err = json.Unmarshal(dat, &configa)
 	if err != nil {
 		return nil, err
 	}
-	return config, nil
+	return configa, nil
 }
 
 func (config *Config) save() error {
