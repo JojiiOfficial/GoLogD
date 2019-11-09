@@ -1,16 +1,8 @@
 package main
 
-import (
-	"bufio"
-	"fmt"
-	"log"
-	"os"
-	"time"
-)
-
 //ParseSysLogFile parses a syslogFile
 func ParseSysLogFile(file string, since int64) {
-	f, err := os.Open(file)
+	/*f, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,5 +23,5 @@ func ParseSysLogFile(file string, since int64) {
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
-	}
+	}*/
 }

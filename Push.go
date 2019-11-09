@@ -6,8 +6,6 @@ import (
 
 type pushT struct {
 	cli.Helper
-	BackupIPtables bool `cli:"t,iptables" usage:"Update iptables" dft:"false"`
-	BackupIPset    bool `cli:"s,ipset" usage:"Update ipset" dft:"true"`
 }
 
 var pushCMD = &cli.Command{
@@ -18,6 +16,14 @@ var pushCMD = &cli.Command{
 	Fn: func(ctx *cli.Context) error {
 		argv := ctx.Argv().(*pushT)
 		_ = argv
+
+		data, err := checkData()
+		if err != nil {
+			LogCritical("Couldn't load data: " + err.Error())
+			return nil
+		}
+
+		_ = data
 		return nil
 	},
 }

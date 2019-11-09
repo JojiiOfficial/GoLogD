@@ -6,16 +6,6 @@ import (
 	"time"
 )
 
-//SyslogEntry a log entry in the syslog
-type SyslogEntry struct {
-	Date     int64 //time.Time
-	Hostname string
-	Tag      string
-	PID      int
-	LogLevel int
-	Message  string
-}
-
 //PrepareLine prepares a line for parsing
 func PrepareLine(line string) []string {
 	replaced := strings.ReplaceAll(strings.ReplaceAll(line, "   ", " "), "  ", " ")
@@ -34,7 +24,7 @@ func ParseSyslogTime(line string) (prepared []string, tim time.Time, err error) 
 }
 
 //ParseSyslogMessage parses a message from syslog
-func ParseSyslogMessage(line string) *SyslogEntry {
+func ParseSyslogMessage(line string, startTime int64) *SyslogEntry {
 	logentry := &SyslogEntry{}
 
 	splitted, tim, err := ParseSyslogTime(line)
@@ -42,7 +32,7 @@ func ParseSyslogMessage(line string) *SyslogEntry {
 		//TODO log
 		return logentry
 	}
-	logentry.Date = tim.Unix()
+	logentry.Date = (int)(startTime - tim.Unix())
 	logentry.Hostname = splitted[3]
 	tag := strings.Split(splitted[4], "[")
 	if len(tag) == 2 {
