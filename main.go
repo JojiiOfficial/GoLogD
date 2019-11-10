@@ -9,7 +9,7 @@ import (
 
 var help = cli.HelpCommand("Display help information")
 var showTimeInLog = true
-var serviceName = "GoLogger"
+var serviceName = "goLogD"
 var logPrefix = serviceName + " "
 
 type argT struct {
@@ -19,7 +19,7 @@ type argT struct {
 var root = &cli.Command{
 	Argv: func() interface{} { return new(argT) },
 	Fn: func(ctx *cli.Context) error {
-		fmt.Println("Usage: ./gologger <install/start/stop/push/addLog> []")
+		fmt.Println("Usage: ./gologd <install/start/stop/push/addLog> []")
 		return nil
 	},
 }
