@@ -1,2 +1,2 @@
-# GoLogger
-GoLogger is a logging deamon for centralized logging
+# GoLogD
+GoLogD is a logging deamon for a centralized logging system
