@@ -139,7 +139,9 @@ func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *F
 	for _, i := range logs {
 		fmt.Println(i)
 	}
-	fmt.Println("Duration:", time.Now().Sub(start).String())
+	if len(logs) > 0 {
+		fmt.Println("Duration:", time.Now().Sub(start).String())
+	}
 	err := pushSyslogs(config, fd.LastLogTime, logs)
 	if err != nil {
 		LogError("Error reporting: " + err.Error())

@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"sync"
 )
 
 var f *os.File
 var files = make(map[string]*os.File)
 var fileSize = make(map[string]int64)
+var flock = sync.RWMutex{}
 
 //ParseSysLogFile parses a syslogFile
 func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*SyslogEntry {
@@ -21,7 +23,9 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 			LogCritical("Couldn't open " + file)
 			return nil
 		}
+		flock.RLock()
 		files[file] = f
+		flock.RUnlock()
 		dat, _ := os.Stat(file)
 		fileSize[file] = dat.Size()
 	}
@@ -36,7 +40,9 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 				LogCritical("Couldn't open " + file)
 				return nil
 			}
+			flock.RLock()
 			files[file] = f
+			flock.RUnlock()
 		}
 	}
 
