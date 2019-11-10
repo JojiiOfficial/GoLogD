@@ -97,6 +97,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 			}
 		}
 	}
+
 	for i, filedata := range data.Files {
 		if filedata.FileName == file.FileData.FileName {
 			fd = &data.Files[i]

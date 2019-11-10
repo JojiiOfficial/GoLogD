@@ -19,7 +19,7 @@ type argT struct {
 var root = &cli.Command{
 	Argv: func() interface{} { return new(argT) },
 	Fn: func(ctx *cli.Context) error {
-		fmt.Println("Usage: gologD <install/start/stop/push> []")
+		fmt.Println("Usage: ./gologger <install/start/stop/push/addLog> []")
 		return nil
 	},
 }
@@ -31,6 +31,7 @@ func main() {
 		cli.Tree(startCMD),
 		cli.Tree(installCMD),
 		cli.Tree(stopCMD),
+		cli.Tree(addLogCMD),
 	).Run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

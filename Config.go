@@ -27,7 +27,7 @@ type FileConfig struct {
 	HostnameFilter []string `json:"hostnameFilter,omitempty"`
 	TagFilter      []string `json:"tagFilter,omitempty"`
 	LogLevelFilter []int    `json:"logLevelFilter,omitempty"`
-	KeyBlacklist   []string `json:"termsToIgnore"`
+	KeyBlacklist   []string `json:"termsToIgnore,omitempty"`
 	MessageFilter  []string `json:"messageFilter,omitempty"`
 }
 
@@ -92,7 +92,10 @@ func (config *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(configFile, b, 0600)
+	var out bytes.Buffer
+	json.Indent(&out, b, "", "\t")
+
+	return ioutil.WriteFile(configFile, out.Bytes(), 0600)
 }
 
 //Validate removes empty fields
