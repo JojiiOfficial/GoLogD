@@ -5,35 +5,38 @@ import (
 	"os"
 )
 
-//DefaultLogger logs os.StdOut
-var DefaultLogger *log.Logger
+//Syslogger logs to syslog
+var Syslogger = log.New(os.Stdout, logPrefix, 0)
 
-//ErrorLogger logs os.StdErr
-var ErrorLogger *log.Logger
+var logFile = "/var/log/gologger.log"
+var lf *os.File
 
-func initLogger(prefix string) {
-	timeFlag := log.Ldate | log.Ltime
-	if !showTimeInLog {
-		timeFlag = 0
+func initLoggerFiles(prefix string) {
+	var err error
+	lf, err = os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		Syslogger.Printf("Can't open logfile! Exiting...")
+		os.Exit(1)
+		return
 	}
-	if DefaultLogger == nil {
-		DefaultLogger = log.New(os.Stdout, prefix, timeFlag)
-	}
-	if ErrorLogger == nil {
-		ErrorLogger = log.New(os.Stderr, prefix, timeFlag)
-	}
+	lf.Truncate(0)
+	log.SetOutput(lf)
+	log.SetPrefix(prefix)
 }
 
 //Log logs
-func Log(level int, errLogger bool, msg string) {
-	initLogger(logPrefix)
-
-	logg := DefaultLogger
-	if errLogger {
-		logg = ErrorLogger
+func Log(level int, msg string) {
+	s, err := os.Stat(logFile)
+	if err != nil {
+		Syslogger.Println("File was Truncated")
+		initLoggerFiles(logPrefix)
 	}
-
-	logg.Printf(
+	if s != nil && s.Size() >= 500000000 {
+		Syslogger.Println("Log too big! Truncating...")
+		lf.Truncate(0)
+		initLoggerFiles(logPrefix)
+	}
+	log.Printf(
 		"%s %s",
 		logTypeToString(level),
 		msg,
@@ -42,23 +45,22 @@ func Log(level int, errLogger bool, msg string) {
 
 //LogCritical logs a very critical error
 func LogCritical(msg string) {
-	Log(LogCrit, true, msg)
+	Log(LogCrit, msg)
 }
 
 //LogError logs error message
 func LogError(msg string) {
-	Log(LogErr, true, msg)
+	Log(LogErr, msg)
 }
 
 //LogInfo logs info message
 func LogInfo(msg string) {
-	Log(LogInf, false, msg)
+	Log(LogInf, msg)
 }
 
 //PrintFInfo fprints info
 func PrintFInfo(format string, data ...interface{}) {
-	initLogger(logPrefix)
-	go DefaultLogger.Printf(format, data...)
+	go log.Printf(format, data...)
 }
 
 const (

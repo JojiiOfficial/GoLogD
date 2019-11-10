@@ -21,8 +21,7 @@ var pushCMD = &cli.Command{
 	Desc:    "push new logs",
 	Argv:    func() interface{} { return new(pushT) },
 	Fn: func(ctx *cli.Context) error {
-		argv := ctx.Argv().(*pushT)
-		_ = argv
+		initLoggerFiles(logPrefix)
 
 		data, config, er := validateFiles()
 		if er {

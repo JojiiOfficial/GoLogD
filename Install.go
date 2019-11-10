@@ -52,12 +52,12 @@ var installCMD = &cli.Command{
 		if err == nil {
 			err := service.Enable()
 			if err != nil {
-				LogCritical("Couldn't enable service: " + err.Error())
+				fmt.Println("Couldn't enable service: " + err.Error())
 				return nil
 			}
 			err = service.Start()
 			if err != nil {
-				LogCritical("Couldn't start service: " + err.Error())
+				fmt.Println("Couldn't start service: " + err.Error())
 				return nil
 			}
 			fmt.Println("Service installed and started")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/JojiiOfficial/SystemdGoService"
@@ -21,9 +22,9 @@ var startCMD = &cli.Command{
 	Fn: func(ct *cli.Context) error {
 		err := setDeamonStatus(SystemdGoService.Restart)
 		if err != nil {
-			LogError("Error: " + err.Error())
+			fmt.Println("Error: " + err.Error())
 		} else {
-			LogInfo("Restarted successfully")
+			fmt.Println("Restarted successfully")
 		}
 		return nil
 	},
