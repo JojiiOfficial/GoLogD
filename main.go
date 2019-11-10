@@ -10,7 +10,7 @@ import (
 var help = cli.HelpCommand("Display help information")
 var logPrefix = ""
 var showTimeInLog = true
-var serviceName = "gologD.service"
+var serviceName = "GoLogger"
 
 type argT struct {
 	cli.Helper
