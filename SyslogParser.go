@@ -127,6 +127,17 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 	if filterMode == 0 && !hitFilter && (len(fileconfig.HostnameFilter) > 0 || len(fileconfig.TagFilter) > 0 || len(fileconfig.LogLevelFilter) > 0 || len(fileconfig.MessageFilter) > 0) {
 		return &SyslogEntry{}
 	}
+	if len(fileconfig.KeyBlacklist) > 0 {
+		for _, key := range fileconfig.KeyBlacklist {
+			if len(strings.Trim(key, " ")) == 0 {
+				continue
+			}
+			if strings.Contains(line, key) {
+				return &SyslogEntry{}
+			}
+		}
+	}
+
 	return logentry
 }
 

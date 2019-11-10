@@ -24,7 +24,7 @@ func initLoggerFiles(prefix string) {
 	log.SetPrefix(prefix)
 }
 
-//Log logs
+//Log logs log
 func Log(level int, msg string) {
 	s, err := os.Stat(logFile)
 	if err != nil {

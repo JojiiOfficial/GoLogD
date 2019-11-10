@@ -25,6 +25,7 @@ var pushCMD = &cli.Command{
 
 		data, config, er := validateFiles()
 		if er {
+			os.Exit(1)
 			return nil
 		}
 
@@ -89,6 +90,11 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 	for i, filec := range config.Files {
 		if filec.File == file.FileData.FileName {
 			confD = &config.Files[i]
+			for _, k := range config.GlobalKeyBlacklist {
+				if len(strings.Trim(k, " ")) > 0 {
+					confD.KeyBlacklist = append(confD.KeyBlacklist, k)
+				}
+			}
 		}
 	}
 	for i, filedata := range data.Files {

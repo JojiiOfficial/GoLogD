@@ -27,6 +27,7 @@ type FileConfig struct {
 	HostnameFilter []string `json:"hostnameFilter,omitempty"`
 	TagFilter      []string `json:"tagFilter,omitempty"`
 	LogLevelFilter []int    `json:"logLevelFilter,omitempty"`
+	KeyBlacklist   []string `json:"termsToIgnore"`
 	MessageFilter  []string `json:"MessageFilter,omitempty"`
 }
 
@@ -44,11 +45,11 @@ func checkConfig() (configa *Config, err error) {
 				LogType:    "syslog",
 				File:       "/var/log/syslog",
 				FilterMode: "or",
-				HostnameFilter: []string{
-					"(?i)root",
+				KeyBlacklist: []string{
+					"success",
 				},
 				TagFilter: []string{
-					"(?i)gologd",
+					"(?i)(cron|systemd)",
 				},
 				LogLevelFilter: []int{},
 				MessageFilter: []string{
