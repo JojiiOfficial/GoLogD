@@ -8,9 +8,9 @@ import (
 )
 
 var help = cli.HelpCommand("Display help information")
-var logPrefix = ""
 var showTimeInLog = true
 var serviceName = "GoLogger"
+var logPrefix = serviceName + " "
 
 type argT struct {
 	cli.Helper

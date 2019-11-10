@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -120,7 +119,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
-					fmt.Println("not ok")
+					LogCritical("Error watching file: " + fd.FileName)
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
@@ -146,10 +145,10 @@ func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *F
 	start := time.Now()
 	logs := ParseSysLogFile(file.File, fileConfig, fd.LastLogTime)
 	for _, i := range logs {
-		fmt.Println(i)
+		LogInfo(i.Message)
 	}
 	if len(logs) > 0 {
-		fmt.Println("Duration:", time.Now().Sub(start).String())
+		LogInfo("Duration: " + time.Now().Sub(start).String())
 	}
 	err := pushSyslogs(config, fd.LastLogTime, logs)
 	if err != nil {
@@ -186,6 +185,6 @@ func pushSyslogs(config *Config, startTime int64, logs []*SyslogEntry) error {
 		return err
 	}
 	errCounter = 0
-	fmt.Println("resp", resp)
+	LogInfo("resp: " + resp)
 	return nil
 }

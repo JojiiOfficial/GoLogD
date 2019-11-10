@@ -27,8 +27,8 @@ func checkData() (data *Data, err error) {
 		LastPush: 0,
 		Files:    []FileData{},
 	}
-	_, err = os.Stat(dataFile)
-	if err != nil {
+	st, err := os.Stat(dataFile)
+	if err != nil || st.Size() == 0 {
 		f, err := os.Create(dataFile)
 		if err != nil {
 			return nil, err

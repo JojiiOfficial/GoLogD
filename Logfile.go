@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -50,7 +51,16 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 	scanner := bufio.NewScanner(files[file])
 	for scanner.Scan() {
 		line := scanner.Text()
-		prepared, tima, _ := ParseSyslogTime(line)
+		if len(strings.Trim(line, " ")) == 0 {
+			continue
+		}
+		prepared, tima, err := ParseSyslogTime(line)
+		if prepared == nil || err != nil {
+			if err != nil {
+				LogError(err.Error())
+			}
+			continue
+		}
 		b := tima.Unix() < since
 		if wasNil {
 			b = tima.Unix() <= since

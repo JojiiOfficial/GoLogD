@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"errors"
 	"os"
 	"regexp"
 	"strconv"
@@ -21,6 +22,9 @@ func PrepareLine(line string) []string {
 //ParseSyslogTime parses only the time value from message
 func ParseSyslogTime(line string) (prepared []string, tim time.Time, err error) {
 	prepared = PrepareLine(line)
+	if len(prepared) < 6 {
+		return nil, time.Now(), errors.New("error parsing line: " + line)
+	}
 	tim, err = time.ParseInLocation(time.Stamp, prepared[0]+" "+prepared[1]+" "+prepared[2], time.Now().Location())
 	if err != nil {
 		return
@@ -46,6 +50,7 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 	logentry.Date = (int)(tim.Unix() - startTime)
 
 	logentry.Hostname = splitted[3]
+
 	if len(fileconfig.HostnameFilter) > 0 {
 		if mr := logRegexMatch(logentry.Hostname, fileconfig.HostnameFilter); !mr && filterMode == 1 {
 			return &SyslogEntry{}
@@ -66,6 +71,10 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 	}
 	if strings.HasSuffix(logentry.Tag, ":") {
 		logentry.Tag = logentry.Tag[:len(logentry.Tag)-1]
+	}
+
+	if isOwnLogEntry(logentry.Tag) {
+		return &SyslogEntry{}
 	}
 
 	if len(fileconfig.TagFilter) > 0 {
@@ -104,6 +113,10 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 		logentry.Message += splitted[i] + " "
 	}
 
+	if isOwnLogEntry(logentry.Message) {
+		return &SyslogEntry{}
+	}
+
 	if len(fileconfig.MessageFilter) > 0 {
 		if mr := logRegexMatch(logentry.Message, fileconfig.MessageFilter); !mr && filterMode == 1 {
 			return &SyslogEntry{}
@@ -115,6 +128,12 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 		return &SyslogEntry{}
 	}
 	return logentry
+}
+
+func isOwnLogEntry(src string) bool {
+	src = strings.ToLower(src)
+	own := strings.ToLower(serviceName)
+	return src == own || strings.Contains(src, own)
 }
 
 func isInIntArray(src int, arr []int) bool {

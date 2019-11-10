@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -112,9 +111,7 @@ func (config *Config) Validate() {
 					cl = append(cl, cf)
 				}
 			}
-			fmt.Println(cl)
 			*fields[i] = cl
 		}
 	}
-	fmt.Println(config.Files)
 }

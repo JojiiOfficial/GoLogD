@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/JojiiOfficial/SystemdGoService"
 
 	"github.com/mkideal/cli"
@@ -15,9 +13,9 @@ var stopCMD = &cli.Command{
 	Fn: func(ct *cli.Context) error {
 		err := setDeamonStatus(SystemdGoService.Stop)
 		if err != nil {
-			fmt.Println("Error:", err.Error())
+			LogError("Error: " + err.Error())
 		} else {
-			fmt.Println("Stopped successfully")
+			LogInfo("Stopped successfully")
 		}
 		return nil
 	},
