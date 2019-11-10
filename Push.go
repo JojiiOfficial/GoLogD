@@ -25,27 +25,8 @@ var pushCMD = &cli.Command{
 		argv := ctx.Argv().(*pushT)
 		_ = argv
 
-		data, err := checkData()
-		if err != nil {
-			LogCritical("Couldn't load data: " + err.Error())
-			return nil
-		}
-
-		config, err := checkConfig()
-		if err != nil {
-			LogCritical("Couldn't load config: " + err.Error())
-			return nil
-		}
-
-		if len(config.Token) != 24 {
-			LogInfo("You need to enter a valid token")
-			os.Exit(1)
-			return nil
-		}
-
-		if len(config.Files) == 0 {
-			LogInfo("No logfile configured. Nothing to do")
-			os.Exit(1)
+		data, config, er := validateFiles()
+		if er {
 			return nil
 		}
 
@@ -65,6 +46,34 @@ var pushCMD = &cli.Command{
 
 		return nil
 	},
+}
+
+func validateFiles() (data *Data, config *Config, erro bool) {
+	erro = false
+	data, err := checkData()
+	if err != nil {
+		LogCritical("Couldn't load data: " + err.Error())
+		return nil, nil, true
+	}
+
+	config, err = checkConfig()
+	if err != nil {
+		LogCritical("Couldn't load config: " + err.Error())
+		return nil, nil, true
+	}
+
+	if len(config.Token) != 24 {
+		LogInfo("You need to enter a valid token before")
+		os.Exit(1)
+		return nil, nil, true
+	}
+
+	if len(config.Files) == 0 {
+		LogInfo("No logfile configured. Nothing to do")
+		os.Exit(1)
+		return nil, nil, true
+	}
+	return
 }
 
 func runFileWatcher(config *Config, data *Data, filesToWatch []WatchedFile) {

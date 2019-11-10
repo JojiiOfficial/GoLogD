@@ -10,6 +10,7 @@ import (
 var help = cli.HelpCommand("Display help information")
 var logPrefix = ""
 var showTimeInLog = true
+var serviceName = "gologD"
 
 type argT struct {
 	cli.Helper
@@ -18,7 +19,7 @@ type argT struct {
 var root = &cli.Command{
 	Argv: func() interface{} { return new(argT) },
 	Fn: func(ctx *cli.Context) error {
-		fmt.Println("Usage: goLogd <push> []")
+		fmt.Println("Usage: gologD <install/start/stop/push> []")
 		return nil
 	},
 }
@@ -27,6 +28,7 @@ func main() {
 	if err := cli.Root(root,
 		cli.Tree(help),
 		cli.Tree(pushCMD),
+		cli.Tree(installCMD),
 	).Run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
