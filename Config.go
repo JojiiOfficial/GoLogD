@@ -28,7 +28,7 @@ type FileConfig struct {
 	TagFilter      []string `json:"tagFilter,omitempty"`
 	LogLevelFilter []int    `json:"logLevelFilter,omitempty"`
 	KeyBlacklist   []string `json:"termsToIgnore"`
-	MessageFilter  []string `json:"MessageFilter,omitempty"`
+	MessageFilter  []string `json:"messageFilter,omitempty"`
 }
 
 //LogTypes all supported Logtypes
