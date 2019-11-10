@@ -35,7 +35,7 @@ func setDeamonStatus(status SystemdGoService.SystemdCommand) error {
 		return errors.New("you need to be root")
 	}
 	if !SystemdGoService.SystemfileExists(SystemdGoService.NameToServiceFile(serviceName)) {
-		return errors.New("service already exists")
+		return errors.New("service doesn't exists")
 	}
 
 	err := SystemdGoService.SetServiceStatus(serviceName, status)

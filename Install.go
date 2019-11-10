@@ -50,8 +50,16 @@ var installCMD = &cli.Command{
 		service.Service.RestartSec = "3"
 		err = service.Create()
 		if err == nil {
-			service.Enable()
-			service.Start()
+			err := service.Enable()
+			if err != nil {
+				LogCritical("Couldn't enable service: " + err.Error())
+				return nil
+			}
+			err = service.Start()
+			if err != nil {
+				LogCritical("Couldn't start service: " + err.Error())
+				return nil
+			}
 			fmt.Println("Service installed and started")
 		} else {
 			fmt.Println("An error occured installitg the service: ", err.Error())
