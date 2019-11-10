@@ -28,7 +28,9 @@ func main() {
 	if err := cli.Root(root,
 		cli.Tree(help),
 		cli.Tree(pushCMD),
+		cli.Tree(startCMD),
 		cli.Tree(installCMD),
+		cli.Tree(stopCMD),
 	).Run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
