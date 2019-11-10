@@ -154,11 +154,18 @@ func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *F
 	err := pushSyslogs(config, fd.LastLogTime, logs)
 	if err != nil {
 		LogError("Error reporting: " + err.Error())
+		if errCounter > 20 {
+			LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+			os.Exit(1)
+			return
+		}
 	} else {
 		fd.LastLogTime = time.Now().Unix()
 		data.Save()
 	}
 }
+
+var errCounter = 0
 
 func pushSyslogs(config *Config, startTime int64, logs []*SyslogEntry) error {
 	if len(logs) == 0 {
@@ -175,8 +182,10 @@ func pushSyslogs(config *Config, startTime int64, logs []*SyslogEntry) error {
 	}
 	resp, err := request(config.Host, "/push/syslog", d, config.IgnoreCert)
 	if err != nil {
+		errCounter++
 		return err
 	}
+	errCounter = 0
 	fmt.Println("resp", resp)
 	return nil
 }
