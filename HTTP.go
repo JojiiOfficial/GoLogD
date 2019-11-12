@@ -9,14 +9,20 @@ import (
 	"strings"
 )
 
+var tr *http.Transport
+
+var client = &http.Client{Transport: tr}
+
 func request(url, file string, data []byte, ignoreCert bool) (string, error) {
-	tr := &http.Transport{
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: ignoreCert},
-		MaxIdleConns:        3,
-		MaxConnsPerHost:     4,
-		MaxIdleConnsPerHost: 3,
+	if tr == nil {
+		tr = &http.Transport{
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: ignoreCert},
+			MaxIdleConns:        3,
+			MaxConnsPerHost:     4,
+			MaxIdleConnsPerHost: 3,
+		}
 	}
-	client := &http.Client{Transport: tr}
+
 	var addFile string
 	if strings.HasSuffix(url, "/") {
 		if strings.HasPrefix(file, "/") {
