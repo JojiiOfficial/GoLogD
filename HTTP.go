@@ -11,7 +11,7 @@ import (
 
 var tr *http.Transport
 
-var client = &http.Client{Transport: tr}
+var HTTPclient *http.Client
 
 func request(url, file string, data []byte, ignoreCert bool) (string, error) {
 	if tr == nil {
@@ -21,6 +21,9 @@ func request(url, file string, data []byte, ignoreCert bool) (string, error) {
 			MaxConnsPerHost:     4,
 			MaxIdleConnsPerHost: 3,
 		}
+	}
+	if HTTPclient == nil {
+		HTTPclient = &http.Client{Transport: tr}
 	}
 
 	var addFile string
@@ -35,7 +38,7 @@ func request(url, file string, data []byte, ignoreCert bool) (string, error) {
 		}
 		addFile = url + "/" + file
 	}
-	resp, err := client.Post(addFile, "application/json", bytes.NewBuffer(data))
+	resp, err := HTTPclient.Post(addFile, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return "", err
 	}
