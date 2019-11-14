@@ -11,15 +11,13 @@ import (
 
 var tr *http.Transport
 
+//HTTPclient client for http requests
 var HTTPclient *http.Client
 
 func request(url, file string, data []byte, ignoreCert bool) (string, error) {
 	if tr == nil {
 		tr = &http.Transport{
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: ignoreCert},
-			MaxIdleConns:        3,
-			MaxConnsPerHost:     4,
-			MaxIdleConnsPerHost: 3,
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: ignoreCert},
 		}
 	}
 	if HTTPclient == nil {
