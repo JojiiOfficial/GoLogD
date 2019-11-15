@@ -30,11 +30,10 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 		dat, _ := os.Stat(file)
 		fileSize[file] = dat.Size()
 	}
+	dat, _ := os.Stat(file)
 	if !wasNil {
-		dat, _ := os.Stat(file)
-		if dat.Size() < fileSize[file] {
+		if (dat.Size()) < fileSize[file] {
 			LogInfo("file truncated!")
-			fileSize[file] = dat.Size()
 			var err error
 			f, err = os.Open(file)
 			if err != nil {
@@ -46,6 +45,10 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 			flock.RUnlock()
 		}
 	}
+
+	flock.RLock()
+	fileSize[file] = dat.Size()
+	flock.RUnlock()
 
 	syslogEntries := []*SyslogEntry{}
 	scanner := bufio.NewScanner(files[file])

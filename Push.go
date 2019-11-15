@@ -154,7 +154,10 @@ func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *F
 		LogInfo(i.Message)
 	}
 	if len(logs) > 0 {
-		LogInfo("Duration: " + time.Now().Sub(start).String())
+		duration := time.Since(start)
+		if duration > 500*time.Millisecond {
+			LogInfo("Duration: " + duration.String())
+		}
 	}
 	err := pushSyslogs(config, fd.LastLogTime, logs)
 	if err != nil {
@@ -191,6 +194,8 @@ func pushSyslogs(config *Config, startTime int64, logs []*SyslogEntry) error {
 		return err
 	}
 	errCounter = 0
-	LogInfo("resp: " + resp)
+	if strings.Trim(strings.ReplaceAll(resp, "\n", ""), " ") != "1" {
+		LogInfo("resp: " + resp)
+	}
 	return nil
 }
