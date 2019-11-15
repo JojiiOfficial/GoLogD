@@ -13,23 +13,80 @@ import (
 	_ "golang.org/x/crypto/blake2b"
 )
 
+type timeLen struct {
+	len, timeid int
+}
+
 //PrepareLine prepares a line for parsing
 func PrepareLine(line string) []string {
 	replaced := strings.ReplaceAll(strings.ReplaceAll(line, "   ", " "), "  ", " ")
 	return strings.Split(replaced, " ")
 }
 
-//ParseSyslogTime parses only the time value from message
-func ParseSyslogTime(line string) (prepared []string, tim time.Time, err error) {
+var timeFormatCache = make(map[string]*timeLen)
+
+func parseStamp(src []string) (time.Time, error) {
+	if len(src) > 2 {
+		return time.ParseInLocation(time.Stamp, src[0]+" "+src[1]+" "+src[2], time.Now().Location())
+	}
+	return time.Now(), errors.New("not enough data")
+}
+
+func parseNginx(src []string) (time.Time, error) {
+	if len(src) > 1 {
+		return time.Parse("_2/Jan/2006:15:04:05 -0700", src[0]+" "+src[1])
+	}
+	return time.Now(), errors.New("not enough data")
+}
+
+func detectTF(src []string) (*timeLen, time.Time, error) {
+	var err error
+	var t time.Time
+	if len(src) >= 3 {
+		t, err = parseStamp(src)
+		if err == nil {
+			return &timeLen{len: 3, timeid: 1}, t, nil
+		}
+	}
+	if len(src) > 1 {
+		t, err = parseNginx(src)
+		if err == nil {
+			return &timeLen{len: 2, timeid: 2}, t, nil
+		}
+	}
+	return nil, t, err
+}
+
+func getTimeFormat(file string, src []string) (time.Time, int, error) {
+	tf, has := timeFormatCache[file]
+	if !has {
+		dtf, t, err := detectTF(src)
+		if err != nil {
+			return time.Now(), dtf.len, err
+		}
+		timeFormatCache[file] = dtf
+		return t, 0, nil
+	}
+
+	if tf.len <= len(src) {
+		if tf.timeid == 1 {
+			time, err := parseStamp(src)
+			return time, tf.len, err
+		} else if tf.timeid == 2 {
+			time, err := parseNginx(src)
+			return time, tf.len, err
+		}
+	}
+	return time.Now(), 0, errors.New("Couldn't parse time")
+}
+
+//ParselogTime parses only the time value from message
+func ParselogTime(file, line string) (prepared []string, tim time.Time, timeLen int, err error) {
 	prepared = PrepareLine(line)
-	if len(prepared) < 6 {
-		return nil, time.Now(), errors.New("error parsing line: " + line)
+	tim, timeLen, err = getTimeFormat(file, prepared)
+	if tim.Year() == 0 {
+		tim = tim.AddDate(time.Now().Year(), 0, 0)
 	}
-	tim, err = time.ParseInLocation(time.Stamp, prepared[0]+" "+prepared[1]+" "+prepared[2], time.Now().Location())
-	if err != nil {
-		return
-	}
-	tim = tim.AddDate(time.Now().Year(), 0, 0)
 	return
 }
 
@@ -176,4 +233,63 @@ func logRegexMatch(src string, pattern []string) bool {
 		}
 	}
 	return false
+}
+
+func parseCustomLogMessage(splitted []string, timea time.Time, fileconfig *FileConfig, line string, timelen int, startTime int64) *CustomLogEntry {
+	if len(splitted) < timelen+1 {
+		LogError("Log too short to parse")
+		return nil
+	}
+
+	sFilterMode := strings.Trim(fileconfig.FilterMode, " ")
+	hitFilter := false
+	filterMode := 1
+	if sFilterMode == "or" {
+		filterMode = 0
+	}
+	logentry := &CustomLogEntry{}
+	logentry.Date = (int)(timea.Unix() - startTime)
+	start := timelen
+	if fileconfig.ParseSource {
+		start++
+		logentry.Source = splitted[timelen]
+	}
+	for i := start; i < len(splitted); i++ {
+		logentry.Message += splitted[i] + " "
+	}
+
+	if isOwnLogEntry(logentry.Message) {
+		return &CustomLogEntry{}
+	}
+
+	if len(fileconfig.MessageFilter) > 0 {
+		if mr := logRegexMatch(logentry.Message, fileconfig.MessageFilter); !mr && filterMode == 1 {
+			return &CustomLogEntry{}
+		} else if mr && filterMode == 0 {
+			hitFilter = true
+		}
+	}
+
+	if len(fileconfig.SourceFilter) > 0 && fileconfig.ParseSource {
+		if mr := logRegexMatch(logentry.Source, fileconfig.SourceFilter); !mr && filterMode == 1 {
+			return &CustomLogEntry{}
+		} else if mr && filterMode == 0 {
+			hitFilter = true
+		}
+	}
+
+	if filterMode == 0 && !hitFilter && (len(fileconfig.SourceFilter) > 0 || len(fileconfig.MessageFilter) > 0) {
+		return &CustomLogEntry{}
+	}
+	if len(fileconfig.KeyBlacklist) > 0 {
+		for _, key := range fileconfig.KeyBlacklist {
+			if len(strings.Trim(key, " ")) == 0 {
+				continue
+			}
+			if strings.Contains(line, key) {
+				return &CustomLogEntry{}
+			}
+		}
+	}
+	return logentry
 }

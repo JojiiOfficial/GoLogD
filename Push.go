@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -112,7 +113,8 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 			LogInfo("No filtermode set for \"" + fd.FileName + "\"! Using \"and\"")
 		}
 	}
-	fireSyslogChanges(file, fd, data, confD, config)
+
+	firelogChange(file, fd, data, confD, config)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -129,7 +131,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					fireSyslogChanges(file, fd, data, confD, config)
+					firelogChange(file, fd, data, confD, config)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -147,27 +149,36 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 	<-done
 }
 
-func fireSyslogChanges(file WatchedFile, fd *FileData, data *Data, fileConfig *FileConfig, config *Config) {
+func firelogChange(file WatchedFile, fd *FileData, data *Data, fileConfig *FileConfig, config *Config) {
 	start := time.Now()
-	logs := ParseSysLogFile(file.File, fileConfig, fd.LastLogTime)
-	for _, i := range logs {
-		LogInfo(i.Message)
-	}
-	if len(logs) > 0 {
-		duration := time.Since(start)
-		if duration > 500*time.Millisecond {
-			LogInfo("Duration: " + duration.String())
+	if fileConfig.LogType == Syslog {
+		logs := ParseSysLogFile(file.File, fileConfig, fd.LastLogTime)
+		for _, i := range logs {
+			LogInfo(i.Message)
 		}
-	}
-	err := pushSyslogs(config, fd.LastLogTime, logs)
-	if err != nil {
-		LogError("Error reporting: " + err.Error())
-		if errCounter > 20 {
-			LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
-			os.Exit(1)
-			return
+		if len(logs) > 0 {
+			duration := time.Since(start)
+			if duration > 500*time.Millisecond {
+				LogInfo("Duration: " + duration.String())
+			}
 		}
-	} else {
+		err := pushSyslogs(config, fd.LastLogTime, logs)
+		if err != nil {
+			LogError("Error reporting: " + err.Error())
+			if errCounter > 20 {
+				LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+				os.Exit(1)
+				return
+			}
+		} else {
+			fd.LastLogTime = time.Now().Unix()
+			data.Save()
+		}
+	} else if fileConfig.LogType == Custom {
+		logs := parseCustomLogfile(file.File, fileConfig, fd.LastLogTime)
+		for _, a := range logs {
+			fmt.Println(a)
+		}
 		fd.LastLogTime = time.Now().Unix()
 		data.Save()
 	}

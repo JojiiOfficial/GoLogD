@@ -29,12 +29,22 @@ type FileConfig struct {
 	LogLevelFilter []int    `json:"logLevelFilter,omitempty"`
 	KeyBlacklist   []string `json:"termsToIgnore,omitempty"`
 	MessageFilter  []string `json:"messageFilter,omitempty"`
+	SourceFilter   []string `json:"sourceFilter,omitempty"`
+	ParseSource    bool     `json:"parseSource,omitempty"`
 }
 
 //LogTypes all supported Logtypes
 var LogTypes = []string{
-	"syslog",
+	Syslog,
+	Custom,
 }
+
+const (
+	//Syslog syslog conf
+	Syslog = "syslog"
+	//Custom conf
+	Custom = "custom"
+)
 
 func checkConfig() (configa *Config, err error) {
 	defaultConfig := &Config{

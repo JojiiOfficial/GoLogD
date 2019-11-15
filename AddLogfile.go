@@ -78,9 +78,9 @@ func addLog(logfile string, reader *bufio.Reader, config *Config, overwrite bool
 
 	lts = lts[:len(lts)-2]
 	fmt.Println("Enter \"A\" to abort")
-	var curr string
+	curr := " "
 	if overwrite {
-		curr = " (" + fileconfig.LogType + ")> "
+		curr = "(" + fileconfig.LogType + ")> "
 	}
 	i, txt := WaitForMessage("Which kind of logfile do you have selected ["+lts+"]>"+curr, reader)
 	if i != 1 && !overwrite || (overwrite && i == -1) {

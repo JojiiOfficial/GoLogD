@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 var f *os.File
@@ -13,8 +14,8 @@ var files = make(map[string]*os.File)
 var fileSize = make(map[string]int64)
 var flock = sync.RWMutex{}
 
-//ParseSysLogFile parses a syslogFile
-func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*SyslogEntry {
+//ParseLogFile parses a logfile
+func ParseLogFile(file string, since int64, callb func([]string, time.Time, int, string)) {
 	wasNil := false
 	if _, ok := files[file]; !ok {
 		wasNil = true
@@ -22,7 +23,7 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 		f, err = os.Open(file)
 		if err != nil {
 			LogCritical("Couldn't open " + file)
-			return nil
+			return
 		}
 		flock.RLock()
 		files[file] = f
@@ -38,7 +39,7 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 			f, err = os.Open(file)
 			if err != nil {
 				LogCritical("Couldn't open " + file)
-				return nil
+				return
 			}
 			flock.RLock()
 			files[file] = f
@@ -50,14 +51,13 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 	fileSize[file] = dat.Size()
 	flock.RUnlock()
 
-	syslogEntries := []*SyslogEntry{}
 	scanner := bufio.NewScanner(files[file])
 	for scanner.Scan() {
 		line := scanner.Text()
 		if len(strings.Trim(line, " ")) == 0 {
 			continue
 		}
-		prepared, tima, err := ParseSyslogTime(line)
+		prepared, tima, timelen, err := ParselogTime(file, line)
 		if prepared == nil || err != nil {
 			if err != nil {
 				LogError(err.Error())
@@ -71,16 +71,37 @@ func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*Syslog
 		if b {
 			continue
 		}
+		callb(prepared, tima, timelen, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func parseCustomLogfile(file string, fileConfig *FileConfig, since int64) []*CustomLogEntry {
+	customLogEntries := []*CustomLogEntry{}
+	ParseLogFile(file, since, func(prepared []string, tima time.Time, timelen int, line string) {
+		loge := parseCustomLogMessage(prepared, tima, fileConfig, line, timelen, since)
+		if loge != nil && *loge != (CustomLogEntry{}) {
+			customLogEntries = append(customLogEntries, loge)
+		} else {
+			LogInfo("Couldn't parse " + file)
+		}
+	})
+	return customLogEntries
+}
+
+//ParseSysLogFile parses a syslog file
+func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*SyslogEntry {
+	syslogEntries := []*SyslogEntry{}
+	ParseLogFile(file, since, func(prepared []string, tima time.Time, timelen int, line string) {
 		loge := ParseSyslogMessage(prepared, tima, line, fileConfig, since)
 		if loge != nil && *loge != (SyslogEntry{}) {
 			syslogEntries = append(syslogEntries, loge)
 		} else if loge == nil {
 			LogInfo("Couldn't parse " + file)
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
+	})
 	return syslogEntries
 }

@@ -12,6 +12,13 @@ type SyslogEntry struct {
 	Message  string `json:"m"`
 }
 
+//CustomLogEntry a log entry from a custom file
+type CustomLogEntry struct {
+	Date    int    `json:"d"`
+	Message string `json:"m"`
+	Source  string `json:"s"`
+}
+
 // ------------------ LOCAL structs ----------------------
 
 //WatchedFile struct with obj from Config and Data

@@ -19,7 +19,7 @@ type argT struct {
 var root = &cli.Command{
 	Argv: func() interface{} { return new(argT) },
 	Fn: func(ctx *cli.Context) error {
-		fmt.Println("Usage: ./gologd <install/start/stop/push/addLog> []")
+		fmt.Println("Usage: ./gologd <install/start/stop/push/addFile> []")
 		return nil
 	},
 }
