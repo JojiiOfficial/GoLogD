@@ -235,6 +235,8 @@ func logRegexMatch(src string, pattern []string) bool {
 	return false
 }
 
+var hostname string
+
 func parseCustomLogMessage(splitted []string, timea time.Time, fileconfig *FileConfig, line string, timelen int, startTime int64) *CustomLogEntry {
 	if len(splitted) < timelen+1 {
 		LogError("Log too short to parse")
@@ -295,6 +297,16 @@ func parseCustomLogMessage(splitted []string, timea time.Time, fileconfig *FileC
 	if len(fileconfig.CustomTag) > 0 {
 		logentry.Tag = fileconfig.CustomTag
 	}
+
+	if len(hostname) == 0 {
+		var err error
+		hostname, err = os.Hostname()
+		if err != nil {
+			LogCritical("Couldn't get hostname")
+			hostname = "-"
+		}
+	}
+	logentry.Hostname = hostname
 
 	return logentry
 }

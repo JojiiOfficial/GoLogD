@@ -14,10 +14,11 @@ type SyslogEntry struct {
 
 //CustomLogEntry a log entry from a custom file
 type CustomLogEntry struct {
-	Date    int    `json:"d"`
-	Message string `json:"m"`
-	Source  string `json:"s"`
-	Tag     string `json:"t,omitempty"`
+	Date     int    `json:"d"`
+	Message  string `json:"m"`
+	Source   string `json:"s"`
+	Hostname string `json:"h"`
+	Tag      string `json:"t,omitempty"`
 }
 
 // ------------------ LOCAL structs ----------------------
