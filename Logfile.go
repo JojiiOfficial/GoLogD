@@ -85,7 +85,7 @@ func parseCustomLogfile(file string, fileConfig *FileConfig, since int64) []*Cus
 		loge := parseCustomLogMessage(prepared, tima, fileConfig, line, timelen, since)
 		if loge != nil && *loge != (CustomLogEntry{}) {
 			customLogEntries = append(customLogEntries, loge)
-		} else {
+		} else if loge == nil {
 			LogInfo("Couldn't parse " + file)
 		}
 	})
