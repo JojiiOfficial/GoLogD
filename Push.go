@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -212,7 +211,6 @@ func pushlogs(config *Config, startTime int64, logs interface{}, logType string)
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(d))
 	resp, err := request(config.Host, "/glog/push/logs/"+logType, d, config.IgnoreCert)
 	if err != nil {
 		errCounter++
