@@ -19,7 +19,6 @@ func initLoggerFiles(prefix string) {
 		os.Exit(1)
 		return
 	}
-	lf.Truncate(0)
 	log.SetOutput(lf)
 	log.SetPrefix(prefix)
 }

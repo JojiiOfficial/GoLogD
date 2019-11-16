@@ -48,7 +48,7 @@ var installCMD = &cli.Command{
 		cpath, _ := filepath.Abs(ex)
 		cpath, _ = path.Split(cpath)
 		service.Service.WorkingDirectory = cpath
-		service.Service.RestartSec = "3"
+		service.Service.RestartSec = "20"
 		err = service.Create()
 		if err == nil {
 			err := service.Enable()
