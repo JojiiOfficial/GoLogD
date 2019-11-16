@@ -31,6 +31,7 @@ type FileConfig struct {
 	MessageFilter  []string `json:"messageFilter,omitempty"`
 	SourceFilter   []string `json:"sourceFilter,omitempty"`
 	ParseSource    bool     `json:"parseSource,omitempty"`
+	CustomTag      string   `json:"customTag,omitempty"`
 }
 
 //LogTypes all supported Logtypes

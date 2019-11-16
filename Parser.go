@@ -291,5 +291,10 @@ func parseCustomLogMessage(splitted []string, timea time.Time, fileconfig *FileC
 			}
 		}
 	}
+
+	if len(fileconfig.CustomTag) > 0 {
+		logentry.Tag = fileconfig.CustomTag
+	}
+
 	return logentry
 }

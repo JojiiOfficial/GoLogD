@@ -161,45 +161,59 @@ func firelogChange(file WatchedFile, fd *FileData, data *Data, fileConfig *FileC
 			if duration > 500*time.Millisecond {
 				LogInfo("Duration: " + duration.String())
 			}
-		}
-		err := pushSyslogs(config, fd.LastLogTime, logs)
-		if err != nil {
-			LogError("Error reporting: " + err.Error())
-			if errCounter > 20 {
-				LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
-				os.Exit(1)
-				return
+			err := pushlogs(config, fd.LastLogTime, logs, "syslog")
+			if err != nil {
+				LogError("Error reporting: " + err.Error())
+				if errCounter > 20 {
+					LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+					os.Exit(1)
+					return
+				}
+			} else {
+				fd.LastLogTime = time.Now().Unix()
+				data.Save()
 			}
-		} else {
-			fd.LastLogTime = time.Now().Unix()
-			data.Save()
 		}
 	} else if fileConfig.LogType == Custom {
 		logs := parseCustomLogfile(file.File, fileConfig, fd.LastLogTime)
 		for _, a := range logs {
-			fmt.Println(a)
+			LogInfo(a.Message)
 		}
-		fd.LastLogTime = time.Now().Unix()
-		data.Save()
+		if len(logs) > 0 {
+			duration := time.Since(start)
+			if duration > 500*time.Millisecond {
+				LogInfo("Duration: " + duration.String())
+			}
+			err := pushlogs(config, fd.LastLogTime, logs, "custom")
+			if err != nil {
+				LogError("Error reporting: " + err.Error())
+				if errCounter > 20 {
+					LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+					os.Exit(1)
+					return
+				}
+			} else {
+				fd.LastLogTime = time.Now().Unix()
+				data.Save()
+			}
+		}
 	}
 }
 
 var errCounter = 0
 
-func pushSyslogs(config *Config, startTime int64, logs []*SyslogEntry) error {
-	if len(logs) == 0 {
-		return nil
-	}
-	psr := PushSyslogRequest{
+func pushlogs(config *Config, startTime int64, logs interface{}, logType string) error {
+	plr := PushLogsRequest{
 		Token:     config.Token,
 		StartTime: startTime,
-		Syslogs:   logs,
+		Logs:      logs,
 	}
-	d, err := json.Marshal(psr)
+	d, err := json.Marshal(plr)
 	if err != nil {
 		return err
 	}
-	resp, err := request(config.Host, "/push/syslog", d, config.IgnoreCert)
+	fmt.Println(string(d))
+	resp, err := request(config.Host, "/glog/push/logs/"+logType, d, config.IgnoreCert)
 	if err != nil {
 		errCounter++
 		return err

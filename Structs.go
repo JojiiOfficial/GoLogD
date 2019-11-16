@@ -17,6 +17,7 @@ type CustomLogEntry struct {
 	Date    int    `json:"d"`
 	Message string `json:"m"`
 	Source  string `json:"s"`
+	Tag     string `json:"t,omitempty"`
 }
 
 // ------------------ LOCAL structs ----------------------
@@ -31,9 +32,9 @@ type WatchedFile struct {
 	FileData       *FileData
 }
 
-//PushSyslogRequest request to push
-type PushSyslogRequest struct {
-	Token     string         `json:"t"`
-	StartTime int64          `json:"st"`
-	Syslogs   []*SyslogEntry `json:"lgs"`
+//PushLogsRequest request to push syslog
+type PushLogsRequest struct {
+	Token     string      `json:"t"`
+	StartTime int64       `json:"st"`
+	Logs      interface{} `json:"lgs"`
 }
