@@ -6,7 +6,7 @@ import (
 )
 
 //Syslogger logs to syslog
-var Syslogger = log.New(os.Stdout, logPrefix, 0)
+var Syslogger = log.New(os.Stdout, logPrefix, log.Ldate|log.Ltime)
 
 var logFile = "/var/log/gologger.log"
 var lf *os.File
