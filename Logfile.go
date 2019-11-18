@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-var f *os.File
 var files = make(map[string]*os.File)
 var fileSize = make(map[string]int64)
 var flock = sync.RWMutex{}
@@ -20,7 +19,7 @@ func ParseLogFile(file string, since int64, callb func([]string, time.Time, int,
 	if _, ok := files[file]; !ok {
 		wasNil = true
 		var err error
-		f, err = os.Open(file)
+		f, err := os.Open(file)
 		if err != nil {
 			LogCritical("Couldn't open " + file)
 			return
@@ -33,10 +32,9 @@ func ParseLogFile(file string, since int64, callb func([]string, time.Time, int,
 	}
 	dat, _ := os.Stat(file)
 	if !wasNil {
-		if (dat.Size()) < fileSize[file] {
+		if (dat.Size()) < fileSize[file] || (dat.Size() == 0 && fileSize[file] == 0) {
 			LogInfo("file truncated!")
-			var err error
-			f, err = os.Open(file)
+			f, err := os.Open(file)
 			if err != nil {
 				LogCritical("Couldn't open " + file)
 				return

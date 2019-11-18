@@ -76,15 +76,20 @@ func validateFiles() (data *Data, config *Config, erro bool) {
 }
 
 func runFileWatcher(config *Config, data *Data, filesToWatch []WatchedFile) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		panic(err)
+	}
+	defer watcher.Close()
 	for _, file := range filesToWatch {
-		go watchFile(config, data, file)
+		go watchFile(config, data, file, watcher)
 	}
 	for {
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func watchFile(config *Config, data *Data, file WatchedFile) {
+func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.Watcher) {
 	var fd *FileData
 	var confD *FileConfig
 	for i, filec := range config.Files {
@@ -115,11 +120,6 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 
 	firelogChange(file, fd, data, confD, config)
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		panic(err)
-	}
-	defer watcher.Close()
 	done := make(chan bool)
 	go func() {
 		for {
@@ -141,7 +141,7 @@ func watchFile(config *Config, data *Data, file WatchedFile) {
 		}
 	}()
 
-	err = watcher.Add(file.File)
+	err := watcher.Add(file.File)
 	if err != nil {
 		log.Fatal(err)
 	}
