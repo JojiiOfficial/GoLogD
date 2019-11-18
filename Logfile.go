@@ -15,6 +15,8 @@ var flock = sync.RWMutex{}
 
 //ParseLogFile parses a logfile
 func ParseLogFile(file string, since int64, callb func([]string, time.Time, int, string)) {
+	flock.RLock()
+	defer flock.RUnlock()
 	wasNil := false
 	if _, ok := files[file]; !ok {
 		wasNil = true
@@ -39,15 +41,11 @@ func ParseLogFile(file string, since int64, callb func([]string, time.Time, int,
 				LogCritical("Couldn't open " + file)
 				return
 			}
-			flock.RLock()
 			files[file] = f
-			flock.RUnlock()
 		}
 	}
 
-	flock.RLock()
 	fileSize[file] = dat.Size()
-	flock.RUnlock()
 
 	scanner := bufio.NewScanner(files[file])
 	for scanner.Scan() {
