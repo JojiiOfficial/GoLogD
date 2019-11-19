@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,7 +14,10 @@ import (
 
 type pushT struct {
 	cli.Helper
+	Verbose int `cli:"v,verbose" usage:"Show more log output"`
 }
+
+var verbose int
 
 var pushCMD = &cli.Command{
 	Name:    "push",
@@ -21,6 +25,11 @@ var pushCMD = &cli.Command{
 	Desc:    "push new logs",
 	Argv:    func() interface{} { return new(pushT) },
 	Fn: func(ctx *cli.Context) error {
+		argv := ctx.Argv().(*pushT)
+		verbose = argv.Verbose
+		if verbose > 1 {
+			LogInfo("Starting with verboselevel: " + strconv.Itoa(verbose))
+		}
 		initLoggerFiles(logPrefix)
 
 		data, config, er := validateFiles()
@@ -130,7 +139,14 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
+					if verbose > 1 {
+						LogInfo("File changed")
+					}
 					firelogChange(file, fd, data, confD, config)
+				} else {
+					if verbose > 2 {
+						LogInfo("File changed but nothing to do")
+					}
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {

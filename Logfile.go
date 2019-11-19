@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"log"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,8 +15,10 @@ var flock = sync.RWMutex{}
 
 //ParseLogFile parses a logfile
 func ParseLogFile(file string, since int64, callb func([]string, time.Time, int, string)) {
+	if verbose > 2 {
+		LogInfo("File: " + file)
+	}
 	flock.RLock()
-	defer flock.RUnlock()
 	wasNil := false
 	if _, ok := files[file]; !ok {
 		wasNil = true
@@ -26,13 +28,18 @@ func ParseLogFile(file string, since int64, callb func([]string, time.Time, int,
 			LogCritical("Couldn't open " + file)
 			return
 		}
-		flock.RLock()
 		files[file] = f
-		flock.RUnlock()
-		dat, _ := os.Stat(file)
-		fileSize[file] = dat.Size()
+		dat, err := os.Stat(file)
+		if err == nil {
+			fileSize[file] = dat.Size()
+		} else if verbose > 1 {
+			LogError("Error getting stat of file: " + err.Error())
+		}
 	}
 	dat, _ := os.Stat(file)
+	if verbose > 2 {
+		LogInfo("New fs: " + strconv.FormatInt(dat.Size(), 10) + " - old fs: " + strconv.FormatInt(fileSize[file], 10) + " was nil: " + strconv.FormatBool(wasNil))
+	}
 	if !wasNil {
 		if (dat.Size()) < fileSize[file] || (dat.Size() == 0 && fileSize[file] == 0) {
 			LogInfo("file truncated!")
@@ -46,6 +53,7 @@ func ParseLogFile(file string, since int64, callb func([]string, time.Time, int,
 	}
 
 	fileSize[file] = dat.Size()
+	flock.RUnlock()
 
 	scanner := bufio.NewScanner(files[file])
 	for scanner.Scan() {
@@ -71,7 +79,7 @@ func ParseLogFile(file string, since int64, callb func([]string, time.Time, int,
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+		LogError("Error scanning: " + err.Error())
 	}
 }
 
