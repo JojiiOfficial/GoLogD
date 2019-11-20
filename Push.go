@@ -145,7 +145,7 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 					firelogChange(file, fd, data, confD, config)
 				} else {
 					if verbose > 2 {
-						LogInfo("File changed but nothing to do")
+						LogInfo("File changed but nothing to do: " + event.String() + " - " + event.Name)
 					}
 				}
 			case err, ok := <-watcher.Errors:
