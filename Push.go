@@ -138,9 +138,9 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 					LogCritical("Error watching file: " + fd.FileName)
 					return
 				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
+				if event.Op&fsnotify.Rename == fsnotify.Rename || event.Op&fsnotify.Write == fsnotify.Write {
 					if verbose > 1 {
-						LogInfo("File changed")
+						LogInfo("Change:" + event.String())
 					}
 					firelogChange(file, fd, data, confD, config)
 				} else {
