@@ -99,6 +99,10 @@ func runFileWatcher(config *Config, data *Data, filesToWatch []WatchedFile) {
 }
 
 func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.Watcher) {
+	_, er := os.Stat(file.File)
+	if er != nil {
+		return
+	}
 	var fd *FileData
 	var confD *FileConfig
 	for i, filec := range config.Files {
@@ -138,7 +142,12 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 					LogCritical("Error watching file: " + fd.FileName)
 					return
 				}
-				if event.Op&fsnotify.Rename == fsnotify.Rename || event.Op&fsnotify.Write == fsnotify.Write {
+				if event.Op&fsnotify.Rename == fsnotify.Rename {
+					time.Sleep(10 * time.Second)
+					watchFile(config, data, file, watcher)
+					return
+				}
+				if event.Op&fsnotify.Write == fsnotify.Write {
 					if verbose > 1 {
 						LogInfo("Change:" + event.String())
 					}
