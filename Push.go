@@ -142,12 +142,17 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 					LogCritical("Error watching file: " + fd.FileName)
 					return
 				}
+
 				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					time.Sleep(10 * time.Second)
+					time.Sleep(5 * time.Second)
+					err := watcher.Remove(file.File)
+					if err != nil {
+						LogError("Error removing file: " + err.Error())
+					}
+					done <- true
 					watchFile(config, data, file, watcher)
 					return
-				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
+				} else if event.Op&fsnotify.Write == fsnotify.Write {
 					if verbose > 1 {
 						LogInfo("Change:" + event.String())
 					}
