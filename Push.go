@@ -144,7 +144,6 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 				}
 
 				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					time.Sleep(5 * time.Second)
 					err := watcher.Remove(file.File)
 					if err != nil {
 						LogError("Error removing file: " + err.Error())
