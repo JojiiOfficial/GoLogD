@@ -82,30 +82,3 @@ func ParseLogFile(file string, since int64, callb func([]string, time.Time, int,
 		LogError("Error scanning: " + err.Error())
 	}
 }
-
-func parseCustomLogfile(file string, fileConfig *FileConfig, since int64) []*CustomLogEntry {
-	customLogEntries := []*CustomLogEntry{}
-	ParseLogFile(file, since, func(prepared []string, tima time.Time, timelen int, line string) {
-		loge := parseCustomLogMessage(prepared, tima, fileConfig, line, timelen, since)
-		if loge != nil && *loge != (CustomLogEntry{}) {
-			customLogEntries = append(customLogEntries, loge)
-		} else if loge == nil {
-			LogInfo("Couldn't parse " + file)
-		}
-	})
-	return customLogEntries
-}
-
-//ParseSysLogFile parses a syslog file
-func ParseSysLogFile(file string, fileConfig *FileConfig, since int64) []*SyslogEntry {
-	syslogEntries := []*SyslogEntry{}
-	ParseLogFile(file, since, func(prepared []string, tima time.Time, timelen int, line string) {
-		loge := ParseSyslogMessage(prepared, tima, line, fileConfig, since)
-		if loge != nil && *loge != (SyslogEntry{}) {
-			syslogEntries = append(syslogEntries, loge)
-		} else if loge == nil {
-			LogInfo("Couldn't parse " + file)
-		}
-	})
-	return syslogEntries
-}

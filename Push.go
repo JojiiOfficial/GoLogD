@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/hpcloud/tail"
 	"github.com/mkideal/cli"
 )
 
@@ -131,101 +132,183 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 		}
 	}
 
-	firelogChange(file, fd, data, confD, config)
-
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					LogCritical("Error watching file: " + fd.FileName)
-					return
-				}
-
-				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					err := watcher.Remove(file.File)
-					if err != nil {
-						LogError("Error removing file: " + err.Error())
-					}
-					done <- true
-					watchFile(config, data, file, watcher)
-					return
-				} else if event.Op&fsnotify.Write == fsnotify.Write {
-					if verbose > 1 {
-						LogInfo("Change:" + event.String())
-					}
-					firelogChange(file, fd, data, confD, config)
-				} else {
-					if verbose > 2 {
-						LogInfo("File changed but nothing to do: " + event.String() + " - " + event.Name)
-					}
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("error:", err)
+	t, err := tail.TailFile(file.File, tail.Config{Follow: true, ReOpen: true, Poll: true})
+	if err != nil {
+		fmt.Println("Error: " + err.Error())
+		return
+	}
+	started := true
+	var lastLine int64
+	var lines []logLineData
+	for line := range t.Lines {
+		since := fd.LastLogTime
+		prepared, tima, timelen, err := ParselogTime(file.File, line.Text)
+		if prepared == nil || err != nil {
+			if err != nil {
+				LogError(err.Error())
+			}
+			continue
+		}
+		b := tima.Unix() < since
+		if started {
+			b = tima.Unix() <= since
+		}
+		if b {
+			continue
+		}
+		if lastLine > 0 {
+			if lastLine+1 > time.Now().Unix() {
+				started = false
 			}
 		}
-	}()
-
-	err := watcher.Add(file.File)
-	if err != nil {
-		log.Fatal(err)
+		lastLine = time.Now().Unix()
+		if started {
+			lines = append(lines, logLineData{
+				prepared: prepared,
+				tim:      tima,
+				timelen:  timelen,
+				line:     line.Text,
+			})
+		} else {
+			if len(lines) > 0 {
+				processLines(lines, fd, confD, config, data)
+				lines = []logLineData{}
+			} else {
+				processLines([]logLineData{logLineData{
+					prepared: prepared,
+					tim:      tima,
+					timelen:  timelen,
+					line:     line.Text,
+				}}, fd, confD, config, data)
+			}
+		}
 	}
-	<-done
+}
+
+type logLineData struct {
+	line     string
+	prepared []string
+	tim      time.Time
+	timelen  int
+}
+
+func processLines(lines []logLineData, filedata *FileData, fileConfig *FileConfig, config *Config, data *Data) {
+	startTime := time.Now()
+	if fileConfig.LogType == Syslog {
+		syslogEntries := []*SyslogEntry{}
+		for _, line := range lines {
+			loge := ParseSyslogMessage(&line, fileConfig, filedata.LastLogTime)
+			if loge != nil && *loge != (SyslogEntry{}) {
+				syslogEntries = append(syslogEntries, loge)
+			} else if loge == nil {
+				LogInfo("Couldn't parse " + filedata.FileName)
+			}
+		}
+		handleSyslogChange(syslogEntries, startTime, config, filedata, data)
+	} else if fileConfig.LogType == Custom {
+		customLogEntries := []*CustomLogEntry{}
+		for _, line := range lines {
+			loge := parseCustomLogMessage(&line, fileConfig, filedata.LastLogTime)
+			if loge != nil && *loge != (CustomLogEntry{}) {
+				customLogEntries = append(customLogEntries, loge)
+			} else if loge == nil {
+				LogInfo("Couldn't parse " + filedata.FileName)
+			}
+		}
+		handleCustomlogChange(customLogEntries, startTime, config, filedata, data)
+	}
+}
+func handleCustomlogChange(logs []*CustomLogEntry, start time.Time, config *Config, fd *FileData, data *Data) {
+	if len(logs) > 0 {
+		duration := time.Since(start)
+		if duration > 500*time.Millisecond {
+			LogInfo("Duration: " + duration.String())
+		}
+		err := pushlogs(config, fd.LastLogTime, logs, "custom")
+		if err != nil {
+			LogError("Error reporting: " + err.Error())
+			if errCounter > 20 {
+				LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+				os.Exit(1)
+				return
+			}
+		} else {
+			fd.LastLogTime = time.Now().Unix()
+			data.Save()
+		}
+	}
+}
+
+func handleSyslogChange(logs []*SyslogEntry, start time.Time, config *Config, filedata *FileData, data *Data) {
+	if len(logs) > 0 {
+		duration := time.Since(start)
+		if duration > 500*time.Millisecond {
+			LogInfo("Duration: " + duration.String())
+		}
+		err := pushlogs(config, filedata.LastLogTime, logs, "syslog")
+		if err != nil {
+			LogError("Error reporting: " + err.Error())
+			if errCounter > 20 {
+				LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+				os.Exit(1)
+				return
+			}
+		} else {
+			filedata.LastLogTime = time.Now().Unix()
+			data.Save()
+		}
+	}
 }
 
 func firelogChange(file WatchedFile, fd *FileData, data *Data, fileConfig *FileConfig, config *Config) {
-	start := time.Now()
-	if fileConfig.LogType == Syslog {
-		logs := ParseSysLogFile(file.File, fileConfig, fd.LastLogTime)
-		for _, i := range logs {
-			LogInfo(i.Message)
-		}
-		if len(logs) > 0 {
-			duration := time.Since(start)
-			if duration > 500*time.Millisecond {
-				LogInfo("Duration: " + duration.String())
-			}
-			err := pushlogs(config, fd.LastLogTime, logs, "syslog")
-			if err != nil {
-				LogError("Error reporting: " + err.Error())
-				if errCounter > 20 {
-					LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
-					os.Exit(1)
-					return
-				}
-			} else {
-				fd.LastLogTime = time.Now().Unix()
-				data.Save()
-			}
-		}
-	} else if fileConfig.LogType == Custom {
-		logs := parseCustomLogfile(file.File, fileConfig, fd.LastLogTime)
-		for _, a := range logs {
-			LogInfo(a.Message)
-		}
-		if len(logs) > 0 {
-			duration := time.Since(start)
-			if duration > 500*time.Millisecond {
-				LogInfo("Duration: " + duration.String())
-			}
-			err := pushlogs(config, fd.LastLogTime, logs, "custom")
-			if err != nil {
-				LogError("Error reporting: " + err.Error())
-				if errCounter > 20 {
-					LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
-					os.Exit(1)
-					return
-				}
-			} else {
-				fd.LastLogTime = time.Now().Unix()
-				data.Save()
-			}
-		}
-	}
+	//start := time.Now()
+	//if fileConfig.LogType == Syslog {
+	//logs := ParseSysLogFile(file.File, fileConfig, fd.LastLogTime)
+	//for _, i := range logs {
+	//LogInfo(i.Message)
+	//}
+	//if len(logs) > 0 {
+	//duration := time.Since(start)
+	//if duration > 500*time.Millisecond {
+	//LogInfo("Duration: " + duration.String())
+	//}
+	//err := pushlogs(config, fd.LastLogTime, logs, "syslog")
+	//if err != nil {
+	//LogError("Error reporting: " + err.Error())
+	//if errCounter > 20 {
+	//LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+	//os.Exit(1)
+	//return
+	//}
+	//} else {
+	//fd.LastLogTime = time.Now().Unix()
+	//data.Save()
+	//}
+	//}
+	//} else if fileConfig.LogType == Custom {
+	//logs := parseCustomLogfile(file.File, fileConfig, fd.LastLogTime)
+	//for _, a := range logs {
+	//LogInfo(a.Message)
+	//}
+	//if len(logs) > 0 {
+	//duration := time.Since(start)
+	//if duration > 500*time.Millisecond {
+	//LogInfo("Duration: " + duration.String())
+	//}
+	//err := pushlogs(config, fd.LastLogTime, logs, "custom")
+	//if err != nil {
+	//LogError("Error reporting: " + err.Error())
+	//if errCounter > 20 {
+	//LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
+	//os.Exit(1)
+	//return
+	//}
+	//} else {
+	//fd.LastLogTime = time.Now().Unix()
+	//data.Save()
+	//}
+	//}
+	//}
 }
 
 var errCounter = 0

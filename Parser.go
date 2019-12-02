@@ -93,7 +93,7 @@ func ParselogTime(file, line string) (prepared []string, tim time.Time, timeLen 
 var regexBins = make(map[string]*regexp.Regexp)
 
 //ParseSyslogMessage parses a message from syslog
-func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfig *FileConfig, startTime int64) *SyslogEntry {
+func ParseSyslogMessage(lineDat *logLineData, fileconfig *FileConfig, startTime int64) *SyslogEntry {
 	sFilterMode := strings.Trim(fileconfig.FilterMode, " ")
 	hitFilter := false
 
@@ -104,9 +104,9 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 
 	logentry := &SyslogEntry{}
 
-	logentry.Date = (int)(tim.Unix() - startTime)
+	logentry.Date = (int)(lineDat.tim.Unix() - startTime)
 
-	logentry.Hostname = splitted[3]
+	logentry.Hostname = lineDat.prepared[3]
 
 	if len(fileconfig.HostnameFilter) > 0 {
 		if mr := logRegexMatch(logentry.Hostname, fileconfig.HostnameFilter); !mr && filterMode == 1 {
@@ -116,7 +116,7 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 		}
 	}
 
-	tag := strings.Split(splitted[4], "[")
+	tag := strings.Split(lineDat.prepared[4], "[")
 	if len(tag) == 2 {
 		pid, err := strconv.Atoi(strings.Split(tag[1], "]")[0])
 		if err == nil {
@@ -124,7 +124,7 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 		}
 		logentry.Tag = tag[0]
 	} else {
-		logentry.Tag = splitted[4]
+		logentry.Tag = lineDat.prepared[4]
 	}
 	if strings.HasSuffix(logentry.Tag, ":") {
 		logentry.Tag = logentry.Tag[:len(logentry.Tag)-1]
@@ -143,7 +143,7 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 	}
 	start := 5
 
-	sp5 := splitted[5]
+	sp5 := lineDat.prepared[5]
 	if strings.HasPrefix(sp5, "<") && strings.HasSuffix(sp5, ">") {
 		start = 6
 		switch sp5 {
@@ -166,8 +166,8 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 		}
 	}
 
-	for i := start; i < len(splitted); i++ {
-		logentry.Message += splitted[i] + " "
+	for i := start; i < len(lineDat.prepared); i++ {
+		logentry.Message += lineDat.prepared[i] + " "
 	}
 
 	if isOwnLogEntry(logentry.Message) {
@@ -189,7 +189,7 @@ func ParseSyslogMessage(splitted []string, tim time.Time, line string, fileconfi
 			if len(strings.Trim(key, " ")) == 0 {
 				continue
 			}
-			if strings.Contains(line, key) {
+			if strings.Contains(lineDat.line, key) {
 				return &SyslogEntry{}
 			}
 		}
@@ -237,8 +237,8 @@ func logRegexMatch(src string, pattern []string) bool {
 
 var hostname string
 
-func parseCustomLogMessage(splitted []string, timea time.Time, fileconfig *FileConfig, line string, timelen int, startTime int64) *CustomLogEntry {
-	if len(splitted) < timelen+1 {
+func parseCustomLogMessage(linedata *logLineData, fileconfig *FileConfig, startTime int64) *CustomLogEntry {
+	if len(linedata.prepared) < linedata.timelen+1 {
 		LogError("Log too short to parse")
 		return nil
 	}
@@ -250,14 +250,14 @@ func parseCustomLogMessage(splitted []string, timea time.Time, fileconfig *FileC
 		filterMode = 0
 	}
 	logentry := &CustomLogEntry{}
-	logentry.Date = (int)(timea.Unix() - startTime)
-	start := timelen
+	logentry.Date = (int)(linedata.tim.Unix() - startTime)
+	start := linedata.timelen
 	if fileconfig.ParseSource {
 		start++
-		logentry.Source = splitted[timelen]
+		logentry.Source = linedata.prepared[linedata.timelen]
 	}
-	for i := start; i < len(splitted); i++ {
-		logentry.Message += splitted[i] + " "
+	for i := start; i < len(linedata.prepared); i++ {
+		logentry.Message += linedata.prepared[i] + " "
 	}
 
 	if isOwnLogEntry(logentry.Message) {
@@ -288,7 +288,7 @@ func parseCustomLogMessage(splitted []string, timea time.Time, fileconfig *FileC
 			if len(strings.Trim(key, " ")) == 0 {
 				continue
 			}
-			if strings.Contains(line, key) {
+			if strings.Contains(linedata.line, key) {
 				return &CustomLogEntry{}
 			}
 		}
