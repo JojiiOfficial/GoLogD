@@ -138,9 +138,34 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 		return
 	}
 	started := true
-	var lastLine int64
 	var lines []logLineData
+	startTime := time.Now()
+	ticker := time.NewTicker(time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				t.Lines <- nil
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 	for line := range t.Lines {
+		if line == nil && started && time.Now().Unix()-3 > startTime.Unix() {
+			if len(lines) > 0 {
+				processLines(lines, fd, confD, config, data)
+				lines = []logLineData{}
+			}
+			close(quit)
+			started = false
+			continue
+		}
+		if line == nil || len(line.Text) == 0 {
+			continue
+		}
 		since := fd.LastLogTime
 		prepared, tima, timelen, err := ParselogTime(file.File, line.Text)
 		if prepared == nil || err != nil {
@@ -156,12 +181,9 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 		if b {
 			continue
 		}
-		if lastLine > 0 {
-			if lastLine+1 > time.Now().Unix() {
-				started = false
-			}
+		if time.Now().Unix()-3 > startTime.Unix() {
+			started = false
 		}
-		lastLine = time.Now().Unix()
 		if started {
 			lines = append(lines, logLineData{
 				prepared: prepared,
@@ -171,6 +193,12 @@ func watchFile(config *Config, data *Data, file WatchedFile, watcher *fsnotify.W
 			})
 		} else {
 			if len(lines) > 0 {
+				lines = append(lines, logLineData{
+					prepared: prepared,
+					tim:      tima,
+					timelen:  timelen,
+					line:     line.Text,
+				})
 				processLines(lines, fd, confD, config, data)
 				lines = []logLineData{}
 			} else {
@@ -218,10 +246,11 @@ func processLines(lines []logLineData, filedata *FileData, fileConfig *FileConfi
 		handleCustomlogChange(customLogEntries, startTime, config, filedata, data)
 	}
 }
+
 func handleCustomlogChange(logs []*CustomLogEntry, start time.Time, config *Config, fd *FileData, data *Data) {
 	if len(logs) > 0 {
 		duration := time.Since(start)
-		if duration > 500*time.Millisecond {
+		if duration > 500*time.Millisecond || true {
 			LogInfo("Duration: " + duration.String())
 		}
 		err := pushlogs(config, fd.LastLogTime, logs, "custom")
@@ -242,7 +271,7 @@ func handleCustomlogChange(logs []*CustomLogEntry, start time.Time, config *Conf
 func handleSyslogChange(logs []*SyslogEntry, start time.Time, config *Config, filedata *FileData, data *Data) {
 	if len(logs) > 0 {
 		duration := time.Since(start)
-		if duration > 500*time.Millisecond {
+		if duration > 500*time.Millisecond || true {
 			LogInfo("Duration: " + duration.String())
 		}
 		err := pushlogs(config, filedata.LastLogTime, logs, "syslog")
@@ -260,57 +289,6 @@ func handleSyslogChange(logs []*SyslogEntry, start time.Time, config *Config, fi
 	}
 }
 
-func firelogChange(file WatchedFile, fd *FileData, data *Data, fileConfig *FileConfig, config *Config) {
-	//start := time.Now()
-	//if fileConfig.LogType == Syslog {
-	//logs := ParseSysLogFile(file.File, fileConfig, fd.LastLogTime)
-	//for _, i := range logs {
-	//LogInfo(i.Message)
-	//}
-	//if len(logs) > 0 {
-	//duration := time.Since(start)
-	//if duration > 500*time.Millisecond {
-	//LogInfo("Duration: " + duration.String())
-	//}
-	//err := pushlogs(config, fd.LastLogTime, logs, "syslog")
-	//if err != nil {
-	//LogError("Error reporting: " + err.Error())
-	//if errCounter > 20 {
-	//LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
-	//os.Exit(1)
-	//return
-	//}
-	//} else {
-	//fd.LastLogTime = time.Now().Unix()
-	//data.Save()
-	//}
-	//}
-	//} else if fileConfig.LogType == Custom {
-	//logs := parseCustomLogfile(file.File, fileConfig, fd.LastLogTime)
-	//for _, a := range logs {
-	//LogInfo(a.Message)
-	//}
-	//if len(logs) > 0 {
-	//duration := time.Since(start)
-	//if duration > 500*time.Millisecond {
-	//LogInfo("Duration: " + duration.String())
-	//}
-	//err := pushlogs(config, fd.LastLogTime, logs, "custom")
-	//if err != nil {
-	//LogError("Error reporting: " + err.Error())
-	//if errCounter > 20 {
-	//LogCritical("More than 20 errors in a row! Stopping service! look at your configuration")
-	//os.Exit(1)
-	//return
-	//}
-	//} else {
-	//fd.LastLogTime = time.Now().Unix()
-	//data.Save()
-	//}
-	//}
-	//}
-}
-
 var errCounter = 0
 
 func pushlogs(config *Config, startTime int64, logs interface{}, logType string) error {
@@ -323,6 +301,7 @@ func pushlogs(config *Config, startTime int64, logs interface{}, logType string)
 	if err != nil {
 		return err
 	}
+	fmt.Println(string(d))
 	resp, err := request(config.Host, "/glog/push/logs/"+logType, d, config.IgnoreCert)
 	if err != nil {
 		errCounter++

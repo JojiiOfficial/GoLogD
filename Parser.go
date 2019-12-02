@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/blake2b"
@@ -24,6 +25,7 @@ func PrepareLine(line string) []string {
 }
 
 var timeFormatCache = make(map[string]*timeLen)
+var lock = sync.RWMutex{}
 
 func parseStamp(src []string) (time.Time, error) {
 	if len(src) > 2 {
@@ -64,6 +66,8 @@ func getTimeFormat(file string, src []string) (time.Time, int, error) {
 		if err != nil {
 			return time.Now(), dtf.len, err
 		}
+		lock.RLock()
+		defer lock.RUnlock()
 		timeFormatCache[file] = dtf
 		return t, 0, nil
 	}
