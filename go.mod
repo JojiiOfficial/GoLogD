@@ -9,7 +9,7 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
-	github.com/mkideal/cli v0.0.3
+	github.com/mkideal/cli v0.0.5
 	github.com/mkideal/pkg v0.0.0-20170503154153-3e188c9e7ecc // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
