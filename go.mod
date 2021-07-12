@@ -8,11 +8,9 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/hpcloud/tail v1.0.0
 	github.com/labstack/gommon v0.3.0 // indirect
-	github.com/mattn/go-colorable v0.1.6 // indirect
-	github.com/mkideal/cli v0.0.5
-	github.com/mkideal/pkg v0.0.0-20170503154153-3e188c9e7ecc // indirect
+	github.com/mkideal/cli v0.2.7
 	github.com/stretchr/testify v1.5.1 // indirect
-	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )
